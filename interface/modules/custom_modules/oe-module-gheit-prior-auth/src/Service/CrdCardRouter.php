@@ -81,6 +81,7 @@ class CrdCardRouter
             'pa_needed'  => null,
             'covered'    => null,
             'doc_needed' => null,
+            'reason'     => null,
             'dtr_link'   => null,
         ];
 
@@ -102,6 +103,9 @@ class CrdCardRouter
                 }
                 if (($sub['url'] ?? '') === 'doc-needed') {
                     $result['doc_needed'] = $sub['valueCode'] ?? null;
+                }
+                if (($sub['url'] ?? '') === 'reason') {
+                    $result['reason'] = $sub['valueCodeableConcept']['coding'][0]['code'] ?? null;
                 }
             }
         }
@@ -181,10 +185,14 @@ class CrdCardRouter
 
     private function logDecision(array $orderContext, string $status, array $card): void
     {
+        $summary = $card['summary'] ?? '';
+        if (!empty($card['reason'])) {
+            $summary .= ' (reason: ' . $card['reason'] . ')';
+        }
         sqlStatement(
             "INSERT INTO `cds_hooks_crd_log` (`order_id`, `patient_id`, `status`, `card_summary`, `date`) " .
             "VALUES (?, ?, ?, ?, NOW())",
-            [$orderContext['order_id'] ?? null, $orderContext['patient_id'] ?? null, $status, $card['summary'] ?? '']
+            [$orderContext['order_id'] ?? null, $orderContext['patient_id'] ?? null, $status, $summary]
         );
     }
 

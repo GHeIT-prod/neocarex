@@ -158,8 +158,6 @@ class CdsHooksClient
             JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
         );
 
-        // file_put_contents(__DIR__ . '/last-payload.json', $jsonPayload);
-
         $payload_file = __DIR__ . '/all-payload.json';
     
         $existingPayloads = [];
@@ -195,16 +193,10 @@ class CdsHooksClient
         $error = curl_error($ch);
         curl_close($ch);
 
-        // file_put_contents(__DIR__ . '/last-response.json', json_encode([
-        //     'httpCode' => $httpCode,
-        //     'curlError' => $error,
-        //     'body' => $response,
-        // ], JSON_PRETTY_PRINT));
-
         if ($response === false || $httpCode !== 200) {
             (new SystemLogger())->error(
                 "CdsHooksClient::callService() failed",
-                ['service' => $service['name'] ?? '', 'httpCode' => $httpCode, 'error' => $error]
+                ['service' => $service['name'] ?? '', 'httpCode' => $httpCode, 'error' => $error, 'response' => $response,]
             );
             return [];
         }
