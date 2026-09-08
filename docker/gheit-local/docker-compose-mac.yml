@@ -18,7 +18,7 @@ services:
       context: "."
       dockerfile: Dockerfile
     ports:
-    - 80:80
+    - 8080:80
     - 443:443
     volumes:
     # - ./docker_data/assetvolume:/var/www/localhost/htdocs/openemr/public/assets:rw
