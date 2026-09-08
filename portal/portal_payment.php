@@ -1254,7 +1254,8 @@ if (($_POST['form_save'] ?? null) || ($_REQUEST['receipt'] ?? null)) {
 
     <?php
     if ($globalsBag->get('payment_gateway') === 'Sphere' && $session->has('patient_portal_onsite_two')) {
-        echo (new SpherePayment('patient', $pid))->renderSphereJs();
+        // echo (new SpherePayment('patient', $pid))->renderSphereJs();
+        echo (new SpherePayment('patient', $pid, $session->getSymfonySession()))->renderSphereJs();
     }
     ?>
 

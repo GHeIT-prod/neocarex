@@ -6,3 +6,4 @@
 ../../apis
 ../../composer.lock
 ../../package-lock.json
+docker_data/
