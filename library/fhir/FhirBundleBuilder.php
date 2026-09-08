@@ -1165,6 +1165,38 @@ class FhirBundleBuilder
                 unset($resource['requester']);
             }
         }
+
+        // locationReference[]  (ServiceRequest, Encounter, etc.)
+        if (isset($resource['locationReference'])) {
+            $resource['locationReference'] = array_values(array_filter(
+                $resource['locationReference'],
+                function ($loc) {
+                    $ref = $loc['reference'] ?? '';
+                    if (str_starts_with($ref, 'urn:uuid:') || empty($ref)) {
+                        return true;
+                    }
+                    if (preg_match('#^Location/[a-f0-9\-]+$#i', $ref)) {
+                        return false;
+                    }
+                    return true;
+                }
+            ));
+
+            if (empty($resource['locationReference'])) {
+                unset($resource['locationReference']);
+            }
+        }
+
+        // serviceProvider  (Encounter.serviceProvider → Organization)
+        if (isset($resource['serviceProvider']['reference'])) {
+            $ref = $resource['serviceProvider']['reference'];
+            if (
+                !str_starts_with($ref, 'urn:uuid:') &&
+                preg_match('#^Organization/[a-f0-9\-]+$#i', $ref)
+            ) {
+                unset($resource['serviceProvider']);
+            }
+        }
     }
 
 }
