@@ -27,5 +27,6 @@ class Sphere
     public const TRUSTEE_API_URL = 'https://vault.trustcommerce.com/trusteeapi/';
 
     // Partner Registry Key for OpenEMR
-    public const AGGREGATOR_ID = "21AA1ES";
+    // public const AGGREGATOR_ID = "21AA1ES";
+    public const AGGREGATOR_ID = "1KNU0SM";
 }
