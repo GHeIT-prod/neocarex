@@ -617,7 +617,7 @@ if (!($session->has('password_update') || (!empty($globalsBag->get('portal_two_p
             <!-- Optionally show two logos, and in either order -->
             <?php if ($globalsBag->get('secondary_portal_logo_position') === 'second') { ?>
                 <?php if ($globalsBag->get('show_portal_primary_logo')) { ?>
-                    <div class="img-fluid text-center" style="margin-bottom: -6rem !important;"><img class="login-logo" src='<?php echo $logoSrc; ?>'></div>
+                    <div class="img-fluid text-center" style="margin-bottom: 6rem !important;"><img class="login-logo" src='<?php echo $logoSrc; ?>' style="height: 150px !important; width: auto !important;"></div>
                 <?php } ?>
                 <?php if ($globalsBag->get('extra_portal_logo_login')) { ?>
                     <div class="img-fluid text-center"><img class="login-logo" src='<?php echo $logo2ndSrc; ?>'></div>
