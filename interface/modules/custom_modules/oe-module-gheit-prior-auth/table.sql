@@ -50,8 +50,46 @@ CREATE TABLE IF NOT EXISTS `cds_hooks_crd_status` (
 INSERT IGNORE INTO `globals` (`gl_name`, `gl_index`, `gl_value`)
 VALUES ('enable_cds_hooks', 0, '0');
 
+-- These two ALTER blocks originally used a bare ADD COLUMN, which is NOT
+-- idempotent: the OpenEMR module manager UI re-runs the full table.sql on
+-- every reinstall/re-registration, not just on first-ever install (confirmed
+-- by the "could not open table.sql, broken form?" error, which was MySQL's
+-- "Duplicate column name" failure on this ALTER, surfaced badly by the
+-- installer). Rewritten as a single idempotent ALTER using
+-- ADD COLUMN IF NOT EXISTS for every column added by this module, so the
+-- file can be re-run safely at any time. Requires MariaDB 10.0.2+ or
+-- MySQL 8.0.29+; if this deployment runs an older server, say so and this
+-- needs a stored-procedure/INFORMATION_SCHEMA guard instead.
 ALTER TABLE `cds_hooks_crd_status`
-  ADD column `encounter_id` INT NULL AFTER `patient_id`,
-  ADD column `resource_id` VARCHAR(255) NULL AFTER `dtr_launch_url`,
-  ADD column `authorization_number` VARCHAR(255) NULL AFTER `resource_id`,
-  ADD column `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP AFTER `card_summary`;
+  ADD COLUMN IF NOT EXISTS `encounter_id` INT NULL AFTER `patient_id`,
+  ADD COLUMN IF NOT EXISTS `resource_id` VARCHAR(255) NULL AFTER `dtr_launch_url`,
+  ADD COLUMN IF NOT EXISTS `authorization_number` VARCHAR(255) NULL AFTER `resource_id`,
+  ADD COLUMN IF NOT EXISTS `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP AFTER `card_summary`,
+  ADD COLUMN IF NOT EXISTS `approved_quantity` INT DEFAULT NULL AFTER `authorization_number`,
+  ADD COLUMN IF NOT EXISTS `denial_reason` VARCHAR(500) DEFAULT NULL AFTER `approved_quantity`,
+  ADD COLUMN IF NOT EXISTS `cpt_code` VARCHAR(16) DEFAULT NULL AFTER `denial_reason`,
+  ADD COLUMN IF NOT EXISTS `seq` INT DEFAULT NULL AFTER `cpt_code`,
+  ADD COLUMN IF NOT EXISTS `occurred_at` DATETIME DEFAULT NULL AFTER `seq`;
+
+-- FR-B-12c: idempotency store, keyed by the Pax event id (UUID). The unique
+-- primary key is what makes the already-processed check (StatusSync::
+-- alreadyProcessed) cheap and the race safe (FR-B-11).
+CREATE TABLE IF NOT EXISTS `pax_status_events` (
+  `event_id`     VARCHAR(36) NOT NULL,
+  `order_id`     INT NOT NULL,
+  `received_at`  DATETIME NOT NULL,
+  PRIMARY KEY (`event_id`),
+  KEY `idx_pax_status_events_order_id` (`order_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- FR-B-12d: a NeoCareX-wide change counter, bumped in the same transaction
+-- as every applied event (FR-B-12f). The SSE stream and the polling
+-- endpoint watch this single row so a screen can ask "has anything changed
+-- since N?" without scanning the status table.
+CREATE TABLE IF NOT EXISTS `pax_sync_seq` (
+  `counter` BIGINT NOT NULL DEFAULT 0
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Already idempotent: only seeds a row if the table is empty.
+INSERT INTO `pax_sync_seq` (`counter`)
+SELECT 0 WHERE NOT EXISTS (SELECT 1 FROM `pax_sync_seq`);
