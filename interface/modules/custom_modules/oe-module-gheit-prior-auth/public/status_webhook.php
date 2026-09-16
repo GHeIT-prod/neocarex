@@ -19,7 +19,7 @@
 $ignoreAuth = true;
 $sessionAllowWrite = true;
 
-require_once __DIR__ . '/../../../../../globals.php';
+require_once __DIR__ . '/../../../../globals.php';
 require_once __DIR__ . '/../src/Service/StatusSync.php';
 
 use OpenEMR\Modules\GheitPriorAuth\Service\StatusSync;
