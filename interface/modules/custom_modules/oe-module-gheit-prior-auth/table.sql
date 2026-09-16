@@ -90,6 +90,11 @@ CREATE TABLE IF NOT EXISTS `pax_sync_seq` (
   `counter` BIGINT NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+ALTER TABLE `cds_hooks_crd_status`
+  ADD COLUMN IF NOT EXISTS `sync_seq` BIGINT DEFAULT NULL AFTER `occurred_at`;
+
+CREATE INDEX IF NOT EXISTS `idx_cds_hooks_crd_status_sync_seq` ON `cds_hooks_crd_status` (`sync_seq`);
+
 -- Already idempotent: only seeds a row if the table is empty.
 INSERT INTO `pax_sync_seq` (`counter`)
 SELECT 0 WHERE NOT EXISTS (SELECT 1 FROM `pax_sync_seq`);

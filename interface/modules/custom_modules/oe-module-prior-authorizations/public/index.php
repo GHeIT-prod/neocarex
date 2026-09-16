@@ -15,6 +15,7 @@ use Juggernaut\OpenEMR\Modules\PriorAuthModule\Controller\AuthorizationService;
 use Juggernaut\OpenEMR\Modules\PriorAuthModule\Controller\ListAuthorizations;
 use OpenEMR\Core\Header;
 use OpenEMR\Common\Csrf\CsrfUtils;
+use OpenEMR\Modules\GheitPriorAuth\Service\StatusSync;
 
 require_once dirname(__DIR__, 5) . '/vendor/autoload.php';
 
@@ -159,51 +160,9 @@ const TABLE_TD = "</td><td>";
                 </div>
             </form>
         </div>
-        <!-- <div class="m-4">
-            <table class="table table-striped">
-                <caption><?php echo xla('Display of authorization code'); ?></caption>
-                <tr>
-                    <th scope="col"><?php echo xlt('Authorization Number'); ?></th>
-                    <th scope="col"><?php echo xlt('Allocated Units'); ?></th>
-                    <th scope="col"><?php echo xlt('Remaining Units'); ?></th>
-                    <th scope="col"><?php echo xlt('Start Date'); ?></th>
-                    <th scope="col"><?php echo xlt('End Date'); ?></th>
-                    <th scope="col"><?php echo xlt('CPTs'); ?></th>
-                    <th scope="col"></th>
-                    <th scope="col"></th>
-                </tr>
-                <?php
-                if (!empty($authList)) {
-                    while ($iter = sqlFetchArray($authList)) {
-                        $editData = json_encode($iter);
-                        $used = AuthorizationService::getUnitsUsed($iter['auth_num'], $iter['pid'], $iter['cpt'], $iter['start_date'], $iter['end_date']);
-                        $remaining = $iter['init_units'] - $used;
-                        print "<tr><td>";
-                        print text($iter['auth_num']);
-                        print TABLE_TD . text($iter['init_units']);
-                        print TABLE_TD . text($remaining);
-                        print TABLE_TD . text($iter['start_date']);
-                        if ($iter['end_date'] == '0000-00-00') {
-                            print TABLE_TD;
-                        } else {
-                            print TABLE_TD . text($iter['end_date']);
-                        }
-                        print TABLE_TD . text($iter['cpt']);
-                        print TABLE_TD . " <button class='btn btn-primary' onclick=getRowData(" . attr_js($iter['id']) . ")>" . xlt('Edit') . "</button>
-                        <input type='hidden' id='" . attr_js($iter['id']) . "' value='" . attr($editData) . "' ></td>";
-                        print "<td><a class='btn btn-danger' href='#' onclick=removeEntry(" . attr_js($iter['id']) . ")>" . xlt('Delete') . "</a></td>";
-
-                        print "</tr>";
-                    }
-                }
-                ?>
-            </table>
-        </div>
-        &copy; <?php echo date('Y') . " Juggernaut Systems Express" ?> -->
-
         <div class="m-4">
             <h3 class="mb-3"><?php echo xlt('Prior Authorization Queue'); ?></h3>
-            <div class="table-responsive">
+            <div class="table-responsive" id="pa-queue-container" data-cursor="<?php echo (int) StatusSync::getCounter(); ?>">
                 <table class="table table-bordered table-sm bg-white mb-0">
                     <tr style="background-color: var(--gray200);">
                         <th><?php echo xlt('Encounter ID'); ?></th>
@@ -224,36 +183,31 @@ const TABLE_TD = "</td><td>";
                         foreach ($authList as $iter) {
                             $used = AuthorizationService::getUnitsUsed($iter['auth_num'], $iter['pid'], $iter['cpt'], $iter['start_date'], $iter['end_date']);
                             $remaining = $iter['init_units'] - $used;
-
-                            // TODO: these fields aren't in $iter yet — wire up once the schema/service exposes them.
+ 
                             $encounterId   = $iter['encounter_id'] ?? '—';
                             $icds          = explode(':', $iter['icd10'])[1] ?? '—';
-                            $status        = $iter['pa_status'] ?? 'pending_review';   // e.g. 'complete' | 'pending_review'
+                            $status        = $iter['pa_status'] ?? '';
+                            $orderId       = $iter['order_id'] ?? '';
                             $timeInStatus  = $iter['time_in_status'] ?? '—';
                             $payloadUrl    = $iter['payload_url'] ?? '#';
                             $responseUrl   = $iter['response_url'] ?? '#';
                             $canPrint      = !empty($iter['can_print']);
                             $actionText    = $iter['action_note'] ?? '—';
                             $cpt           = explode(':', $iter['code'])[1] ?? '—';
-
-                            $statusLabels = [
-                                'complete'       => ['text' => xl('Complete'),       'bg' => '#e6f4ea', 'color' => '#1e7e34'],
-                                'pending_review' => ['text' => xl('Pending Review'), 'bg' => '#e8f0fe', 'color' => '#1a56db'],
-                            ];
-                            $statusStyle = $statusLabels[$status] ?? $statusLabels['pending_review'];
+ 
+                            [$statusLabel, $statusBadgeClass] = StatusSync::describe($status);
                             ?>
-                            <tr>
+                            <tr data-order-id="<?php echo attr($orderId); ?>">
                                 <td><?php echo text($encounterId); ?></td>
-                                <td><?php echo text($iter['authorization_number']); ?></td>
+                                <td data-field="auth-number"><?php echo text($iter['authorization_number']); ?></td>
                                 <td>
-                                    <span class="badge badge-pill" style="background:<?php echo attr($statusStyle['bg']); ?>;color:<?php echo attr($statusStyle['color']); ?>;padding:6px 14px;font-weight:600;">
-                                        <?php echo text($statusStyle['text']); ?>
+                                    <span class="badge badge-pill <?php echo attr($statusBadgeClass); ?>" data-field="status-badge">
+                                        <?php echo text($statusLabel); ?>
                                     </span>
                                 </td>
                                 <td><?php echo text($cpt); ?></td>
                                 <td><?php echo text($icds); ?></td>
                                 <td><?php echo text($iter['init_units']) . ' / ' . text($remaining); ?></td>
-                                <!-- <td><?php echo text($iter['start_date']); ?></td> -->
                                  <td><?php echo attr(substr($iter['start_date'], 0, 10)); ?></td>
                                 <td>
                                     <span class="badge badge-pill" style="background:#eee;color:#555;padding:6px 12px;">
