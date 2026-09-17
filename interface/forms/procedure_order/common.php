@@ -349,14 +349,6 @@ if (($_POST['bn_save'] ?? null) || !empty($_POST['bn_xmit']) || !empty($_POST['b
         $uuid = sqlQuery("SELECT uuid FROM procedure_order WHERE procedure_order_id = ?", [$formid]);
         $serviceRequestUuid = UuidRegistry::uuidToString($uuid['uuid']);
 
-        // $service = new FhirServiceRequestService();
-        // $serviceRequestResult = $service->getOne($serviceRequestUuid);
-        // $serviceRequestResource = $serviceRequestResult->getData()[0];
-        // $fhirArray = $serviceRequestResource->jsonSerialize();
-
-        // $pubSubController = new PubSub();
-        // $pubSubController->publishPubsub('ServiceRequest', 'service_request_created', 'service_request_data', $fhirArray);
-
         $service = new FhirServiceRequestService();
         $result = $service->getOne($serviceRequestUuid);
 
@@ -620,6 +612,9 @@ if (($_POST['bn_save'] ?? null) || !empty($_POST['bn_xmit']) || !empty($_POST['b
 
         switch ($cdsResult['status']) {
             case 'pa-required':
+            case 'pas-pending-review';
+            case 'pas-submitted';
+            case 'error';
                 $modalConfig = [
                     'type'        => 'pa',
                     'status'      => xl('PA Submission Required'),
@@ -634,6 +629,8 @@ if (($_POST['bn_save'] ?? null) || !empty($_POST['bn_xmit']) || !empty($_POST['b
                 break;
 
             case 'dtr-required':
+            case 'dtr-pending-review':
+            case 'dtr-complete';
                 $modalConfig = [
                     'type'        => 'dtr',
                     'status'      => xl('DTR Required'),

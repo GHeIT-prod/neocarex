@@ -26,6 +26,7 @@ require_once($GLOBALS["srcdir"] . "/options.inc.php");
 
 use OpenEMR\Common\Acl\AclMain;
 use OpenEMR\Common\Session\SessionWrapperFactory;
+use OpenEMR\Modules\GheitPriorAuth\Service\StatusSync;
 
 function getListItem($listid, $value)
 {
@@ -63,24 +64,35 @@ function getPaStatusRows($orow, $codes): array
                 procedure_order_code.procedure_code as code,
                 procedure_order_code.procedure_name as name,
                 procedure_order_code.diagnoses as icd10
-
+ 
             FROM cds_hooks_crd_status
                 INNER JOIN procedure_order_code ON cds_hooks_crd_status.order_id = procedure_order_code.procedure_order_id
                     WHERE procedure_order_id = ?", [$orow['procedure_order_id']]);
-
-    // Placeholder data — wire up to real CRD service response later.
-    $cptCode = explode(':', $status_card['code'])[1];
-    $cptName = $status_card['name'] ?? '';
-    $icd10   = explode(':', $status_card['icd10'])[1];
-
+ 
+    if (empty($status_card)) {
+        return [];
+    }
+ 
+    $cptParts = explode(':', (string) ($status_card['code'] ?? ''));
+    $cptCode  = $cptParts[1] ?? ($cptParts[0] ?? '');
+    $cptName  = $status_card['name'] ?? '';
+ 
+    $icdParts = explode(':', (string) ($status_card['icd10'] ?? ''));
+    $icd10    = $icdParts[1] ?? ($icdParts[0] ?? '');
+ 
+    [$statusLabel, $statusBadgeClass] = StatusSync::describe((string) $status_card['status']);
+ 
     return [
         [
-            'order_id'      => $orow['procedure_order_id'],
-            'cpt_hcpcs'     => $cptCode . ' — ' . $cptName,
-            'icd10'         => $icd10,
-            'auth_required' => $status_card['status'],
-            'pa_status'     => !empty($status_card['status']) ?  xl('PA Needs to be Submitted'): '',
-            'pa_manager_url' => '#',
+            'order_id'             => $orow['procedure_order_id'],
+            'cpt_hcpcs'            => trim($cptCode . ' — ' . $cptName, ' —'),
+            'icd10'                => $icd10,
+            'auth_required'        => $status_card['status'] !== 'pa-not-required',
+            'status'               => $status_card['status'],
+            'label'                => $statusLabel,
+            'badge_class'          => $statusBadgeClass,
+            'authorization_number' => $status_card['authorization_number'] ?? null,
+            'pa_manager_url'       => $GLOBALS['webroot'] . '/interface/modules/custom_modules/oe-module-prior-authorizations/public/index.php',
         ],
     ];
 }
@@ -754,7 +766,8 @@ function generate_order_report($orderid, $input_form = false, $genstyles = true,
             <strong class="lfont1"><?php echo xlt('Prior Authorization Status'); ?></strong>
             <span class="text-muted"> (<?php echo xlt('from CDS Hooks Services — CRD'); ?>)</span>
         </div>
-        <div class="table-responsive">
+        <div class="table-responsive" id="pa-status-container-<?php echo attr($orderid); ?>" data-cursor="<?php echo (int) StatusSync::getCounter(); ?>">
+        <!-- <div class="table-responsive"> -->
             <table class="table table-sm table-bordered mb-0">
                 <tr style="background-color: var(--gray200);">
                     <th><?php echo xlt('Order ID'); ?></th>
@@ -765,7 +778,7 @@ function generate_order_report($orderid, $input_form = false, $genstyles = true,
                     <th><?php echo xlt('Action'); ?></th>
                 </tr>
                 <?php foreach ($paRows as $paRow) : ?>
-                <tr>
+                <tr data-order-id="<?php echo attr($paRow['order_id']); ?>">
                     <td><?php echo myCellText($paRow['order_id']); ?></td>
                     <td><?php echo myCellText($paRow['cpt_hcpcs']); ?></td>
                     <td><?php echo myCellText($paRow['icd10']); ?></td>
@@ -782,8 +795,11 @@ function generate_order_report($orderid, $input_form = false, $genstyles = true,
                     </td>
                     <td>
                         <a href="<?php echo attr($GLOBALS['webroot'] . "/interface/modules/custom_modules/oe-module-prior-authorizations/public/index.php"); ?>" style="color:#0d6efd;text-decoration:underline;">
-                            <?php echo text($paRow['pa_status']); ?>
+                            <span class="badge badge-pill <?php echo attr($paRow['badge_class']); ?>" data-field="status-badge">
+                                <?php echo text($paRow['label']); ?>
+                            </span>
                         </a>
+                        <span data-field="auth-number" class="d-none"><?php echo text($paRow['authorization_number']); ?></span>
                     </td>
                     <td>
                         <a href="<?php echo attr($GLOBALS['webroot'] . "/interface/modules/custom_modules/oe-module-prior-authorizations/public/index.php"); ?>" class="btn btn-sm" style="background:#b3261e;color:#fff;">
@@ -793,13 +809,81 @@ function generate_order_report($orderid, $input_form = false, $genstyles = true,
                 </tr>
                 <?php endforeach; ?>
             </table>
-        </div>
+        <!-- </div> -->
     </div>
     <style>
         .table-bordered, .table-bordered td, .table-bordered th {
             border: 1px solid #000 !important;
         }
     </style>
+
+    <script>
+        (function () {
+            var container = document.getElementById('pa-status-container-<?php echo js_escape($orderid); ?>');
+            if (!container) {
+                return;
+            }
+            var cursor = parseInt(container.getAttribute('data-cursor') || '0', 10);
+            var base = <?php echo js_escape($GLOBALS['webroot'] . '/interface/modules/custom_modules/oe-module-gheit-prior-auth/public/'); ?>;
+ 
+            function applyChange(change) {
+                var row = container.querySelector('tr[data-order-id="' + change.order_id + '"]');
+                if (!row) {
+                    return;
+                }
+                var badge = row.querySelector('[data-field="status-badge"]');
+                if (badge) {
+                    badge.textContent = change.label;
+                    badge.className = 'badge badge-pill ' + change.badgeClass;
+                }
+                var authEl = row.querySelector('[data-field="auth-number"]');
+                if (authEl && change.authorization_number) {
+                    authEl.textContent = change.authorization_number;
+                }
+            }
+ 
+            function handlePayload(payload) {
+                if (!payload || !payload.changes) {
+                    return;
+                }
+                payload.changes.forEach(applyChange);
+                if (payload.cursor) {
+                    cursor = payload.cursor;
+                }
+            }
+ 
+            var polling = false;
+            function startPolling() {
+                if (polling) {
+                    return;
+                }
+                polling = true;
+                setInterval(function () {
+                    fetch(base + 'status_poll.php?scope=patient&cursor=' + cursor, { credentials: 'same-origin' })
+                        .then(function (r) { return r.json(); })
+                        .then(handlePayload)
+                        .catch(function () {});
+                }, 5000);
+            }
+ 
+            if (typeof EventSource !== 'undefined') {
+                var es = new EventSource(base + 'status_stream.php?scope=patient&cursor=' + cursor);
+                es.onmessage = function (e) {
+                    try {
+                        handlePayload(JSON.parse(e.data));
+                    } catch (err) {
+                        // malformed frame — ignore, next tick will catch up
+                    }
+                };
+                es.onerror = function () {
+                    startPolling();
+                };
+            } else {
+                startPolling();
+            }
+        })();
+    </script>
+
     <?php endif; ?>
 
     <?php if ($input_form) { ?>

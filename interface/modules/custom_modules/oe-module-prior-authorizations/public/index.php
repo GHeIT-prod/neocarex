@@ -165,6 +165,7 @@ const TABLE_TD = "</td><td>";
             <div class="table-responsive" id="pa-queue-container" data-cursor="<?php echo (int) StatusSync::getCounter(); ?>">
                 <table class="table table-bordered table-sm bg-white mb-0">
                     <tr style="background-color: var(--gray200);">
+                        <th><?php echo xlt('Order ID'); ?></th>
                         <th><?php echo xlt('Encounter ID'); ?></th>
                         <th><?php echo xlt('Auth #'); ?></th>
                         <th><?php echo xlt('PA Status'); ?></th>
@@ -198,6 +199,7 @@ const TABLE_TD = "</td><td>";
                             [$statusLabel, $statusBadgeClass] = StatusSync::describe($status);
                             ?>
                             <tr data-order-id="<?php echo attr($orderId); ?>">
+                                <td><?php echo text($orderId); ?></td>
                                 <td><?php echo text($encounterId); ?></td>
                                 <td data-field="auth-number"><?php echo text($iter['authorization_number']); ?></td>
                                 <td>
@@ -275,6 +277,71 @@ const TABLE_TD = "</td><td>";
             top.restoreSession();
             window.open('print_auth.php?id=' + encodeURIComponent(id), '_blank', 'width=800,height=900');
         }
+
+        (function () {
+            var container = document.getElementById('pa-queue-container');
+            if (!container) {
+                return;
+            }
+            var cursor = parseInt(container.getAttribute('data-cursor') || '0', 10);
+            var base = <?php echo js_escape($GLOBALS['webroot'] . '/interface/modules/custom_modules/oe-module-gheit-prior-auth/public/'); ?>;
+ 
+            function applyChange(change) {
+                var row = container.querySelector('tr[data-order-id="' + change.order_id + '"]');
+                if (!row) {
+                    return;
+                }
+                var badge = row.querySelector('[data-field="status-badge"]');
+                if (badge) {
+                    badge.textContent = change.label;
+                    badge.className = 'badge badge-pill ' + change.badgeClass;
+                }
+                var authEl = row.querySelector('[data-field="auth-number"]');
+                if (authEl && change.authorization_number) {
+                    authEl.textContent = change.authorization_number;
+                }
+            }
+ 
+            function handlePayload(payload) {
+                if (!payload || !payload.changes) {
+                    return;
+                }
+                payload.changes.forEach(applyChange);
+                if (payload.cursor) {
+                    cursor = payload.cursor;
+                }
+            }
+ 
+            var polling = false;
+            function startPolling() {
+                if (polling) {
+                    return;
+                }
+                polling = true;
+                setInterval(function () {
+                    fetch(base + 'status_poll.php?scope=patient&cursor=' + cursor, { credentials: 'same-origin' })
+                        .then(function (r) { return r.json(); })
+                        .then(handlePayload)
+                        .catch(function () {});
+                }, 5000);
+            }
+ 
+            if (typeof EventSource !== 'undefined') {
+                var es = new EventSource(base + 'status_stream.php?scope=patient&cursor=' + cursor);
+                es.onmessage = function (e) {
+                    try {
+                        handlePayload(JSON.parse(e.data));
+                    } catch (err) {
+                        // malformed frame — ignore, next tick will catch up
+                    }
+                };
+                es.onerror = function () {
+                    startPolling();
+                };
+            } else {
+                startPolling();
+            }
+        })();
     </script>
 
 </body>
