@@ -153,27 +153,6 @@ class CdsHooksClient
             'prefetch'     => $prefetch,
         ];
 
-        $jsonPayload = json_encode(
-            $payload,
-            JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
-        );
-
-        $payload_file = __DIR__ . '/all-payload.json';
-    
-        $existingPayloads = [];
-        $existingPayloads[] = [
-            'timestamp' => date('c'),
-            'body' => $payload,
-        ];
-
-        file_put_contents(
-            $payload_file,
-            json_encode(
-                $existingPayloads,
-                JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
-            )
-        );
-
         $headers = ['Content-Type: application/json'];
         $token = $this->getBearerToken($service);
         if (!empty($token)) {
@@ -202,31 +181,6 @@ class CdsHooksClient
         }
 
         $decoded = json_decode($response, true);
-
-        // error_log('CRD: Nucural Service Response: ' . json_encode($decoded));
-
-        $file = __DIR__ . '/all-responses.json';
-
-        $existingResponses = [];
-
-        if (file_exists($file)) {
-            $existingResponses = json_decode(file_get_contents($file), true) ?? [];
-        }
-
-        $existingResponses[] = [
-            'timestamp' => date('c'),
-            'httpCode' => $httpCode,
-            'curlError' => $error,
-            'body' => json_decode($response, true) ?? $response,
-        ];
-
-        file_put_contents(
-            $file,
-            json_encode(
-                $existingResponses,
-                JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
-            )
-        );
 
         if (empty($decoded['cards']) && empty($decoded['systemActions'])) {
             return [];

@@ -22,31 +22,13 @@ class ListAuthorizations
         $this->pid = $pid;
     }
 
-    // public function getAllAuthorizations(): false|array|\ADORecordSet_mysqli
-    // {
-    //     $sql = "SELECT *
-    //                   FROM module_prior_authorizations
-    //                   WHERE pid = ? ORDER BY `start_date` DESC";
-                    
-    //     // return sqlStatement($sql, [$this->pid]);
-    //     $result = sqlStatement($sql, [$this->pid]);
-
-    //     if (!$result) {
-    //         return false;
-    //     }
-
-    //     $authorizations = [];
-    //     while ($row = sqlFetchArray($result)) {
-    //         $authorizations[] = $row;
-    //     }
-
-    //     return $authorizations;
-    // }
-
     public function getAllAuthorizations($pid): false|array|\ADORecordSet_mysqli
     {
         $sql = "SELECT
+                    cds_hooks_crd_status.order_id,
                     cds_hooks_crd_status.status as pa_status,
+                    cds_hooks_crd_status.seq,
+                    cds_hooks_crd_status.sync_seq,
                     cds_hooks_crd_status.created_at as start_date,
                     cds_hooks_crd_status.dtr_launch_url,
                     cds_hooks_crd_status.resource_id,
@@ -54,26 +36,45 @@ class ListAuthorizations
                     procedure_order_code.procedure_code as code,
                     procedure_order_code.procedure_name as name,
                     procedure_order_code.diagnoses as icd10,
-                    procedure_order.encounter_id
+                    procedure_order.encounter_id,
+                    CONCAT(patient_data.fname, ' ', patient_data.lname) AS member_name,
+                    patient_data.DOB,
+                    facility.name as facility_name,
+                    CONCAT(users.fname, ' ', users.lname) AS provider_name,
+                    users.npi as provider_npi,
+                    insurance_companies.name as insurance_company,
+                    insurance_data.policy_number,
+                    insurance_data.group_number
+
                 FROM cds_hooks_crd_status
                 INNER JOIN procedure_order_code
                     ON cds_hooks_crd_status.order_id = procedure_order_code.procedure_order_id
                 INNER JOIN procedure_order
                     ON procedure_order_code.procedure_order_id = procedure_order.procedure_order_id
+                INNER JOIN patient_data
+                    ON procedure_order.patient_id = patient_data.id
+                INNER JOIN facility
+                    ON procedure_order.location_id = facility.id
+                INNER JOIN users
+                    ON facility.id = users.facility_id
+                INNER JOIN insurance_data 
+                    ON procedure_order.patient_id = insurance_data.pid
+                INNER JOIN insurance_companies 
+                    ON insurance_data.provider = insurance_companies.id
                 WHERE procedure_order.patient_id = ?
                 ORDER BY cds_hooks_crd_status.created_at DESC";
-
+ 
         $result = sqlStatement($sql, [$pid]);
-
+ 
         if (!$result) {
             return false;
         }
-
+ 
         $authorizations = [];
         while ($row = sqlFetchArray($result)) {
             $authorizations[] = $row;
         }
-
+ 
         return $authorizations;
     }
 

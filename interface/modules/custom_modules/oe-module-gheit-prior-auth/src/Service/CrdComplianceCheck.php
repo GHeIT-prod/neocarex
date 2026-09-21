@@ -39,9 +39,6 @@ class CrdComplianceCheck
         int $practitionerId
     ): void {
         try {
-            // if (empty($GLOBALS['enable_cds_hooks'])) {
-            //     return;
-            // }
 
             $client = new CdsHooksClient();
             $router = new CrdCardRouter();
