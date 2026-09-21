@@ -36,12 +36,31 @@ class ListAuthorizations
                     procedure_order_code.procedure_code as code,
                     procedure_order_code.procedure_name as name,
                     procedure_order_code.diagnoses as icd10,
-                    procedure_order.encounter_id
+                    procedure_order.encounter_id,
+                    CONCAT(patient_data.fname, ' ', patient_data.lname) AS member_name,
+                    patient_data.DOB,
+                    facility.name as facility_name,
+                    CONCAT(users.fname, ' ', users.lname) AS provider_name,
+                    users.npi as provider_npi,
+                    insurance_companies.name as insurance_company,
+                    insurance_data.policy_number,
+                    insurance_data.group_number
+
                 FROM cds_hooks_crd_status
                 INNER JOIN procedure_order_code
                     ON cds_hooks_crd_status.order_id = procedure_order_code.procedure_order_id
                 INNER JOIN procedure_order
                     ON procedure_order_code.procedure_order_id = procedure_order.procedure_order_id
+                INNER JOIN patient_data
+                    ON procedure_order.patient_id = patient_data.id
+                INNER JOIN facility
+                    ON procedure_order.location_id = facility.id
+                INNER JOIN users
+                    ON facility.id = users.facility_id
+                INNER JOIN insurance_data 
+                    ON procedure_order.patient_id = insurance_data.pid
+                INNER JOIN insurance_companies 
+                    ON insurance_data.provider = insurance_companies.id
                 WHERE procedure_order.patient_id = ?
                 ORDER BY cds_hooks_crd_status.created_at DESC";
  

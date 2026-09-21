@@ -211,28 +211,6 @@ class CrdCardRouter
 
     public function persistStatus(array $orderContext, array $routed, array $card): void
     {
-        $file = __DIR__ . '/persisted-responses.json';
-
-        $existingResponses = [];
-
-        if (file_exists($file)) {
-            $existingResponses = json_decode(file_get_contents($file), true) ?? [];
-        }
-
-        $existingResponses[] = [
-            'timestamp' => date('c'),
-            'routed' => $routed,
-            'card' => $card,
-            'orderContext' => $orderContext,
-        ];
-
-        file_put_contents(
-            $file,
-            json_encode(
-                $existingResponses,
-                JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
-            )
-        );
         $authorizationNumber = 'AUTH-' . date('Y-m-d') . '-' . '00'.$orderContext['order_id'];
         sqlStatement(
             "INSERT INTO `cds_hooks_crd_status`

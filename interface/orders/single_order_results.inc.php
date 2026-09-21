@@ -53,6 +53,51 @@ function myCellText($s)
     return text($s);
 }
 
+/**
+ * mock
+ */
+function getDtrAndUrgencyForCpt(string $cptCode): array
+{
+    $rules = [
+        'K0823' => [
+            'dtr_icon'      => '✓',
+            'dtr_label'     => xl('DTR Form Filled'),
+            'dtr_detail'    => xl('Auto-populated 95%'),
+            'dtr_class'     => 'text-success',
+            'urgency_icon'  => '⚡',
+            'urgency_label' => xl('Expedited (72h)'),
+            'urgency_class' => 'text-danger',
+        ],
+        '97161' => [
+            'dtr_icon'      => '⚠️',
+            'dtr_label'     => xl('Missing ROM Notes'),
+            'dtr_detail'    => '',
+            'dtr_class'     => 'text-warning',
+            'urgency_icon'  => '',
+            'urgency_label' => xl('Standard (7d)'),
+            'urgency_class' => 'text-muted',
+        ],
+        '99214' => [
+            'dtr_icon'      => '',
+            'dtr_label'     => xl('Exempt'),
+            'dtr_detail'    => '',
+            'dtr_class'     => 'text-warning',
+            'urgency_icon'  => '',
+            'urgency_label' => xl('Standard'),
+            'urgency_class' => 'text-muted',
+        ],
+    ];
+
+    return $rules[$cptCode] ?? [
+        'dtr_icon'      => '—',
+        'dtr_label'     => xl('Not available'),
+        'dtr_detail'    => '',
+        'dtr_class'     => 'text-muted',
+        'urgency_icon'  => '',
+        'urgency_label' => xl('Standard'),
+        'urgency_class' => 'text-muted',
+    ];
+}
 
 function getPaStatusRows($orow, $codes): array
 {
@@ -63,11 +108,16 @@ function getPaStatusRows($orow, $codes): array
                 cds_hooks_crd_status.authorization_number,
                 procedure_order_code.procedure_code as code,
                 procedure_order_code.procedure_name as name,
-                procedure_order_code.diagnoses as icd10
+                procedure_order_code.diagnoses as icd10,
+                insurance_companies.name as insurance_company,
+                insurance_data.policy_number
  
             FROM cds_hooks_crd_status
-                INNER JOIN procedure_order_code ON cds_hooks_crd_status.order_id = procedure_order_code.procedure_order_id
-                    WHERE procedure_order_id = ?", [$orow['procedure_order_id']]);
+                INNER JOIN procedure_order ON cds_hooks_crd_status.order_id = procedure_order.procedure_order_id
+                INNER JOIN procedure_order_code ON procedure_order.procedure_order_id = procedure_order_code.procedure_order_id
+                INNER JOIN insurance_data ON procedure_order.patient_id = insurance_data.pid
+                INNER JOIN insurance_companies ON insurance_data.provider = insurance_companies.id
+                    WHERE procedure_order.procedure_order_id = ?", [$orow['procedure_order_id']]);
  
     if (empty($status_card)) {
         return [];
@@ -81,6 +131,9 @@ function getPaStatusRows($orow, $codes): array
     $icd10    = $icdParts[1] ?? ($icdParts[0] ?? '');
  
     [$statusLabel, $statusBadgeClass] = StatusSync::describe((string) $status_card['status']);
+
+    //mock data
+    $dtrInfo = getDtrAndUrgencyForCpt($cptCode);
  
     return [
         [
@@ -93,6 +146,15 @@ function getPaStatusRows($orow, $codes): array
             'badge_class'          => $statusBadgeClass,
             'authorization_number' => $status_card['authorization_number'] ?? null,
             'pa_manager_url'       => $GLOBALS['webroot'] . '/interface/modules/custom_modules/oe-module-prior-authorizations/public/index.php',
+            'policy'               => $status_card['insurance_company'].' '.$status_card['policy_number'],
+            //mock data
+            'dtr_icon'             => $dtrInfo['dtr_icon'],
+            'dtr_label'            => $dtrInfo['dtr_label'],
+            'dtr_detail'           => $dtrInfo['dtr_detail'],
+            'dtr_class'            => $dtrInfo['dtr_class'],
+            'urgency_icon'         => $dtrInfo['urgency_icon'],
+            'urgency_label'        => $dtrInfo['urgency_label'],
+            'urgency_class'        => $dtrInfo['urgency_class'],
         ],
     ];
 }
@@ -767,20 +829,28 @@ function generate_order_report($orderid, $input_form = false, $genstyles = true,
             <span class="text-muted"> (<?php echo xlt('from CDS Hooks Services — CRD'); ?>)</span>
         </div>
         <div class="table-responsive" id="pa-status-container-<?php echo attr($orderid); ?>" data-cursor="<?php echo (int) StatusSync::getCounter(); ?>">
-        <!-- <div class="table-responsive"> -->
             <table class="table table-sm table-bordered mb-0">
                 <tr style="background-color: var(--gray200);">
                     <th><?php echo xlt('Order ID'); ?></th>
-                    <th><?php echo xlt('CPT / HCPCS'); ?></th>
+                    <th><?php echo xlt('CPT / HCPCS & Service Description'); ?></th>
                     <th><?php echo xlt('ICD-10'); ?></th>
                     <th><?php echo xlt('Auth Required?'); ?></th>
+                    <th><?php echo xlt('DTR Questionnaire'); ?></th>
+                    <th><?php echo xlt('Urgency / SLA'); ?></th>
                     <th><?php echo xlt('PA Status'); ?></th>
                     <th><?php echo xlt('Action'); ?></th>
                 </tr>
                 <?php foreach ($paRows as $paRow) : ?>
                 <tr data-order-id="<?php echo attr($paRow['order_id']); ?>">
                     <td><?php echo myCellText($paRow['order_id']); ?></td>
-                    <td><?php echo myCellText($paRow['cpt_hcpcs']); ?></td>
+                    <td>
+                        <?php echo myCellText($paRow['cpt_hcpcs']); ?>
+                        <br>
+                        <span class="font-weight-bold"><?php echo xlt('Policy'); ?>:</span>
+                        <span style="color: #0284c7; text-decoration: underline;">
+                            <?php echo myCellText($paRow['policy']); ?>
+                        </span>
+                    </td>
                     <td><?php echo myCellText($paRow['icd10']); ?></td>
                     <td>
                         <?php if (!empty($paRow['auth_required'])) : ?>
@@ -792,6 +862,15 @@ function generate_order_report($orderid, $input_form = false, $genstyles = true,
                                 <?php echo xlt('Not Required'); ?>
                             </span>
                         <?php endif; ?>
+                    </td>
+                    <td class="<?php echo attr($paRow['dtr_class']); ?>">
+                        <?php echo $paRow['dtr_icon'] ? htmlspecialchars($paRow['dtr_icon']) . ' ' : ''; ?><?php echo text($paRow['dtr_label']); ?>
+                        <?php if (!empty($paRow['dtr_detail'])) : ?>
+                            <br><small class="text-muted"><?php echo text($paRow['dtr_detail']); ?></small>
+                        <?php endif; ?>
+                    </td>
+                    <td class="<?php echo attr($paRow['urgency_class']); ?>">
+                        <?php echo $paRow['urgency_icon'] ? htmlspecialchars($paRow['urgency_icon']) . ' ' : ''; ?><?php echo text($paRow['urgency_label']); ?>
                     </td>
                     <td>
                         <a href="<?php echo attr($GLOBALS['webroot'] . "/interface/modules/custom_modules/oe-module-prior-authorizations/public/index.php"); ?>" style="color:#0d6efd;text-decoration:underline;">
