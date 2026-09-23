@@ -108,8 +108,6 @@ class CrdComplianceCheck
             foreach ($services as $service) {
                 $cards = $client->callService($service, $hookContext, $prefetch);
 
-                // file_put_contents(__DIR__ . '/last-card.json', json_encode($cards, JSON_PRETTY_PRINT));
-
                 if (empty($cards)) {
                     self::logDecision($orderContext, 'no-pa', ['summary' => 'no cards returned']);
                     continue;
@@ -249,8 +247,6 @@ class CrdComplianceCheck
             WHERE `procedure_order_id` = ? AND `procedure_code` != '' LIMIT 1",
             [$orderId]
         );
-
-        error_log('CRD: NeoCareX CPT: ' . $row['procedure_code'] . ' and display ' . $row['procedure_name']);
 
         if (empty($row['procedure_code'])) {
             return $serviceRequest;
