@@ -61,22 +61,22 @@ function getPaAdjudicationForCpt(string $cptCode): array
 {
     $rules = [
         '97161' => [
-            'adj_icon' => '✗', 'adj_label' => xl('Submission error'),
-            'adj_bg' => '#fdecea', 'adj_color' => '#c0392b',
-            'sla_icon' => '⚠️', 'sla_label' => xl('SLA Halted'),
-            'sla_bg' => '#fdecea', 'sla_color' => '#c0392b',
-            'sla_subtext' => xl('Missing data block'), 'sla_progress' => null,
-            'action_label' => xl('Fix & Resubmit'), 'action_type' => 'button',
-            'action_bg' => '#c0392b', 'action_color' => '#fff',
+            'adj_icon' => '⭐', 'adj_label' => xl('Gold-Card Auto-Approved'),
+            'adj_bg' => '#fff8e1', 'adj_color' => '#b8860b',
+            'sla_icon' => '⚡', 'sla_label' => xl('Instantaneous'),
+            'sla_bg' => '#e8f8ee', 'sla_color' => '#1e7e34',
+            'sla_subtext' => xl('TX HB 3459 Exemption'), 'sla_progress' => 100,
+            'action_label' => xl('Exemption Verified'), 'action_type' => 'text',
+            'action_color' => '#b8860b',
         ],
         '99214' => [
-            'adj_icon' => '⏳', 'adj_label' => xl('In Review / Payer Engine'),
-            'adj_bg' => '#eaf2fb', 'adj_color' => '#1a5fb4',
-            'sla_icon' => '⏳', 'sla_label' => xl('51h 06m left'),
-            'sla_bg' => '#fff6df', 'sla_color' => '#9a7d0a',
-            'sla_subtext' => xl('In 72h Expedited Window'), 'sla_progress' => 30,
-            'action_label' => xl('Ping Payer'), 'action_type' => 'button',
-            'action_bg' => '#fff', 'action_color' => '#333', 'action_border' => '#ccc',
+            'adj_icon' => '🚫', 'adj_label' => xl('Cancelled / Voided'),
+            'adj_bg' => '#f0f0f0', 'adj_color' => '#666',
+            'sla_icon' => '—', 'sla_label' => xl('Request Withdrawn'),
+            'sla_bg' => '#f0f0f0', 'sla_color' => '#666',
+            'sla_subtext' => xl('Re-routed to standard billing'), 'sla_progress' => null,
+            'action_label' => xl('Closed'), 'action_type' => 'text',
+            'action_color' => '#999',
         ],
         'K0823' => [
             'adj_icon' => '✅', 'adj_label' => xl('Certified in Full'),
@@ -88,20 +88,20 @@ function getPaAdjudicationForCpt(string $cptCode): array
             'action_color' => '#1e7e34',
         ],
         'K0861' => [
-            'adj_icon' => '✅', 'adj_label' => xl('Certified in Full'),
-            'adj_bg' => '#e8f8ee', 'adj_color' => '#1e7e34',
-            'sla_icon' => '✓', 'sla_label' => xl('Adjudicated in 18h'),
-            'sla_bg' => '#e8f8ee', 'sla_color' => '#1e7e34',
-            'sla_subtext' => null, 'sla_progress' => 100,
-            'action_label' => xl('Active'), 'action_type' => 'text',
-            'action_color' => '#1e7e34',
+            'adj_icon' => '📋', 'adj_label' => xl('Pended: Documentation Required'),
+            'adj_bg' => '#fdf2e3', 'adj_color' => '#b8621b',
+            'sla_icon' => '⏳', 'sla_label' => xl('72h Clock Running'),
+            'sla_bg' => '#fff6df', 'sla_color' => '#9a7d0a',
+            'sla_subtext' => xl('PT Seating & Mobility Eval Needed'), 'sla_progress' => 15,
+            'action_label' => xl('Submit Documentation'), 'action_type' => 'button',
+            'action_bg' => '#fff', 'action_color' => '#333', 'action_border' => '#ccc',
         ],
         '15823' => [
-            'adj_icon' => '✗', 'adj_label' => xl('Denied: Cosmetic'),
+            'adj_icon' => '✗', 'adj_label' => xl('Denied: LCD Criteria Not Met'),
             'adj_bg' => '#fdecea', 'adj_color' => '#c0392b',
             'sla_icon' => '✓', 'sla_label' => xl('Decided in 12h'),
             'sla_bg' => '#e8f8ee', 'sla_color' => '#1e7e34',
-            'sla_subtext' => null, 'sla_progress' => 100,
+            'sla_subtext' => xl('LCD Policy L34528'), 'sla_progress' => 100,
             'action_label' => xl('File Appeal'), 'action_type' => 'button',
             'action_bg' => '#fff', 'action_color' => '#c0392b', 'action_border' => '#c0392b',
         ],
@@ -111,17 +111,17 @@ function getPaAdjudicationForCpt(string $cptCode): array
             'sla_icon' => '✓', 'sla_label' => xl('Decided in 22h'),
             'sla_bg' => '#e8f8ee', 'sla_color' => '#1e7e34',
             'sla_subtext' => null, 'sla_progress' => 100,
-            'action_label' => xl('Request Remaining 6'), 'action_type' => 'button',
+            'action_label' => xl('Request Remaining 2'), 'action_type' => 'button',
             'action_bg' => '#fff', 'action_color' => '#333', 'action_border' => '#ccc',
         ],
         '97162' => [
-            'adj_icon' => '⭐', 'adj_label' => xl('Gold-Card Auto-Approved'),
-            'adj_bg' => '#fff8e1', 'adj_color' => '#b8860b',
-            'sla_icon' => '⚡', 'sla_label' => xl('Instantaneous (0.8s)'),
+            'adj_icon' => '✅', 'adj_label' => xl('Certified in Full'),
+            'adj_bg' => '#e8f8ee', 'adj_color' => '#1e7e34',
+            'sla_icon' => '✓', 'sla_label' => xl('Adjudicated'),
             'sla_bg' => '#e8f8ee', 'sla_color' => '#1e7e34',
-            'sla_subtext' => null, 'sla_progress' => 100,
-            'action_label' => xl('Exemption Verified'), 'action_type' => 'text',
-            'action_color' => '#b8860b',
+            'sla_subtext' => xl('Post-Stroke Rehab Necessity Met'), 'sla_progress' => 100,
+            'action_label' => xl('Active'), 'action_type' => 'text',
+            'action_color' => '#1e7e34',
         ],
         'K0848' => [
             'adj_icon' => '📞', 'adj_label' => xl('Pended: P2P Scheduled'),
@@ -131,6 +131,24 @@ function getPaAdjudicationForCpt(string $cptCode): array
             'sla_subtext' => null, 'sla_progress' => 15,
             'action_label' => xl('Join P2P Call'), 'action_type' => 'button',
             'action_bg' => '#fff', 'action_color' => '#b8621b', 'action_border' => '#b8621b',
+        ],
+        'E1002' => [
+            'adj_icon' => '✗', 'adj_label' => xl('Denied: Clinical Criteria Not Met'),
+            'adj_bg' => '#fdecea', 'adj_color' => '#c0392b',
+            'sla_icon' => '✓', 'sla_label' => xl('Decision Received'),
+            'sla_bg' => '#e8f8ee', 'sla_color' => '#1e7e34',
+            'sla_subtext' => xl('Policy DME-WP-04'), 'sla_progress' => 100,
+            'action_label' => xl('File Appeal'), 'action_type' => 'button',
+            'action_bg' => '#fff', 'action_color' => '#c0392b', 'action_border' => '#c0392b',
+        ],
+        'E0986' => [
+            'adj_icon' => '⛔', 'adj_label' => xl('Rejected: Benefit Exclusion'),
+            'adj_bg' => '#fdecea', 'adj_color' => '#c0392b',
+            'sla_icon' => '✓', 'sla_label' => xl('Decision Received'),
+            'sla_bg' => '#e8f8ee', 'sla_color' => '#1e7e34',
+            'sla_subtext' => xl('Non-Covered Under Plan Rider'), 'sla_progress' => 100,
+            'action_label' => xl('Contact Payer'), 'action_type' => 'button',
+            'action_bg' => '#fff', 'action_color' => '#333', 'action_border' => '#ccc',
         ],
     ];
 
@@ -158,17 +176,22 @@ function buildMockPaDisplayData(array $iter, string $cpt, array $adj, int $appro
         '97542' => "Wheelchair management (e.g., assessment, fitting, training), each 15 minutes",
         '97162' => "Physical therapy evaluation: moderate complexity, 30 minutes",
         'K0848' => "Power wheelchair, group 3 standard, sling/solid seat/back, up to 300 lbs",
+        '97161' => "Blepharoplasty, upper eyelid; with excessive skin weighting down lid",
+        '99214' => "established patient office or outpatient visit lasting 30-39 minutes or requiring a moderate level of medical decision-making",
+        'E1002' => "Wheelchair accessory, power seating system",
+        'E0986' => "Manual wheelchair accessory, power assist system"
+
     ];
 
     // Determination "kind" drives letter styling — derive from the adjudication label
     // rather than hardcoding per-CPT, so it stays in sync with getPaAdjudicationForCpt().
     $label = $adj['adj_label'];
-    if (stripos($label, 'denied') !== false) {
+    if (stripos($label, 'denied') !== false || stripos($label, 'rejected') !== false) {
         $kind = 'denied';
+    } elseif (stripos($label, 'cancelled') !== false || stripos($label, 'voided') !== false) {
+        $kind = 'cancelled';
     } elseif (stripos($label, 'partial') !== false) {
         $kind = 'partial';
-    } elseif (stripos($label, 'pended') !== false) {
-        $kind = 'pended';
     } elseif (stripos($label, 'certified') !== false || stripos($label, 'approved') !== false || stripos($label, 'gold') !== false) {
         $kind = 'approved';
     } else {
@@ -488,6 +511,10 @@ const TABLE_TD = "</td><td>";
                                             $actionKey = 'remaining';
                                         } elseif (stripos($actionLabel, 'appeal') !== false) {
                                             $actionKey = 'appeal';
+                                        } elseif (stripos($actionLabel, 'documentation') !== false || stripos($actionLabel, 'submit') !== false) {
+                                            $actionKey = 'docs';
+                                        } elseif (stripos($actionLabel, 'contact') !== false) {
+                                            $actionKey = 'contact_payer';
                                         } else {
                                             $actionKey = '';
                                         }
