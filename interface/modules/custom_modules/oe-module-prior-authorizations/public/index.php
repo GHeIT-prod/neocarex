@@ -61,22 +61,22 @@ function getPaAdjudicationForCpt(string $cptCode): array
 {
     $rules = [
         '97161' => [
-            'adj_icon' => '✗', 'adj_label' => xl('Submission error'),
-            'adj_bg' => '#fdecea', 'adj_color' => '#c0392b',
-            'sla_icon' => '⚠️', 'sla_label' => xl('SLA Halted'),
-            'sla_bg' => '#fdecea', 'sla_color' => '#c0392b',
-            'sla_subtext' => xl('Missing data block'), 'sla_progress' => null,
-            'action_label' => xl('Fix & Resubmit'), 'action_type' => 'button',
-            'action_bg' => '#c0392b', 'action_color' => '#fff',
+            'adj_icon' => '⭐', 'adj_label' => xl('Gold-Card Auto-Approved'),
+            'adj_bg' => '#fff8e1', 'adj_color' => '#b8860b',
+            'sla_icon' => '⚡', 'sla_label' => xl('Instantaneous'),
+            'sla_bg' => '#e8f8ee', 'sla_color' => '#1e7e34',
+            'sla_subtext' => xl('TX HB 3459 Exemption'), 'sla_progress' => 100,
+            'action_label' => xl('Exemption Verified'), 'action_type' => 'text',
+            'action_color' => '#b8860b',
         ],
         '99214' => [
-            'adj_icon' => '⏳', 'adj_label' => xl('In Review / Payer Engine'),
-            'adj_bg' => '#eaf2fb', 'adj_color' => '#1a5fb4',
-            'sla_icon' => '⏳', 'sla_label' => xl('51h 06m left'),
-            'sla_bg' => '#fff6df', 'sla_color' => '#9a7d0a',
-            'sla_subtext' => xl('In 72h Expedited Window'), 'sla_progress' => 30,
-            'action_label' => xl('Ping Payer'), 'action_type' => 'button',
-            'action_bg' => '#fff', 'action_color' => '#333', 'action_border' => '#ccc',
+            'adj_icon' => '🚫', 'adj_label' => xl('Cancelled / Voided'),
+            'adj_bg' => '#f0f0f0', 'adj_color' => '#666',
+            'sla_icon' => '—', 'sla_label' => xl('Request Withdrawn'),
+            'sla_bg' => '#f0f0f0', 'sla_color' => '#666',
+            'sla_subtext' => xl('Re-routed to standard billing'), 'sla_progress' => null,
+            'action_label' => xl('Closed'), 'action_type' => 'text',
+            'action_color' => '#999',
         ],
         'K0823' => [
             'adj_icon' => '✅', 'adj_label' => xl('Certified in Full'),
@@ -88,20 +88,20 @@ function getPaAdjudicationForCpt(string $cptCode): array
             'action_color' => '#1e7e34',
         ],
         'K0861' => [
-            'adj_icon' => '✅', 'adj_label' => xl('Certified in Full'),
-            'adj_bg' => '#e8f8ee', 'adj_color' => '#1e7e34',
-            'sla_icon' => '✓', 'sla_label' => xl('Adjudicated in 18h'),
-            'sla_bg' => '#e8f8ee', 'sla_color' => '#1e7e34',
-            'sla_subtext' => null, 'sla_progress' => 100,
-            'action_label' => xl('Active'), 'action_type' => 'text',
-            'action_color' => '#1e7e34',
+            'adj_icon' => '📋', 'adj_label' => xl('Pended: Documentation Required'),
+            'adj_bg' => '#fdf2e3', 'adj_color' => '#b8621b',
+            'sla_icon' => '⏳', 'sla_label' => xl('72h Clock Running'),
+            'sla_bg' => '#fff6df', 'sla_color' => '#9a7d0a',
+            'sla_subtext' => xl('PT Seating & Mobility Eval Needed'), 'sla_progress' => 15,
+            'action_label' => xl('Submit Documentation'), 'action_type' => 'button',
+            'action_bg' => '#fff', 'action_color' => '#333', 'action_border' => '#ccc',
         ],
         '15823' => [
-            'adj_icon' => '✗', 'adj_label' => xl('Denied: Cosmetic'),
+            'adj_icon' => '✗', 'adj_label' => xl('Denied: LCD Criteria Not Met'),
             'adj_bg' => '#fdecea', 'adj_color' => '#c0392b',
             'sla_icon' => '✓', 'sla_label' => xl('Decided in 12h'),
             'sla_bg' => '#e8f8ee', 'sla_color' => '#1e7e34',
-            'sla_subtext' => null, 'sla_progress' => 100,
+            'sla_subtext' => xl('LCD Policy L34528'), 'sla_progress' => 100,
             'action_label' => xl('File Appeal'), 'action_type' => 'button',
             'action_bg' => '#fff', 'action_color' => '#c0392b', 'action_border' => '#c0392b',
         ],
@@ -111,17 +111,17 @@ function getPaAdjudicationForCpt(string $cptCode): array
             'sla_icon' => '✓', 'sla_label' => xl('Decided in 22h'),
             'sla_bg' => '#e8f8ee', 'sla_color' => '#1e7e34',
             'sla_subtext' => null, 'sla_progress' => 100,
-            'action_label' => xl('Request Remaining 6'), 'action_type' => 'button',
+            'action_label' => xl('Request Remaining 2'), 'action_type' => 'button',
             'action_bg' => '#fff', 'action_color' => '#333', 'action_border' => '#ccc',
         ],
         '97162' => [
-            'adj_icon' => '⭐', 'adj_label' => xl('Gold-Card Auto-Approved'),
-            'adj_bg' => '#fff8e1', 'adj_color' => '#b8860b',
-            'sla_icon' => '⚡', 'sla_label' => xl('Instantaneous (0.8s)'),
+            'adj_icon' => '✅', 'adj_label' => xl('Certified in Full'),
+            'adj_bg' => '#e8f8ee', 'adj_color' => '#1e7e34',
+            'sla_icon' => '✓', 'sla_label' => xl('Adjudicated'),
             'sla_bg' => '#e8f8ee', 'sla_color' => '#1e7e34',
-            'sla_subtext' => null, 'sla_progress' => 100,
-            'action_label' => xl('Exemption Verified'), 'action_type' => 'text',
-            'action_color' => '#b8860b',
+            'sla_subtext' => xl('Post-Stroke Rehab Necessity Met'), 'sla_progress' => 100,
+            'action_label' => xl('Active'), 'action_type' => 'text',
+            'action_color' => '#1e7e34',
         ],
         'K0848' => [
             'adj_icon' => '📞', 'adj_label' => xl('Pended: P2P Scheduled'),
@@ -131,6 +131,24 @@ function getPaAdjudicationForCpt(string $cptCode): array
             'sla_subtext' => null, 'sla_progress' => 15,
             'action_label' => xl('Join P2P Call'), 'action_type' => 'button',
             'action_bg' => '#fff', 'action_color' => '#b8621b', 'action_border' => '#b8621b',
+        ],
+        'E1002' => [
+            'adj_icon' => '✗', 'adj_label' => xl('Denied: Clinical Criteria Not Met'),
+            'adj_bg' => '#fdecea', 'adj_color' => '#c0392b',
+            'sla_icon' => '✓', 'sla_label' => xl('Decision Received'),
+            'sla_bg' => '#e8f8ee', 'sla_color' => '#1e7e34',
+            'sla_subtext' => xl('Policy DME-WP-04'), 'sla_progress' => 100,
+            'action_label' => xl('File Appeal'), 'action_type' => 'button',
+            'action_bg' => '#fff', 'action_color' => '#c0392b', 'action_border' => '#c0392b',
+        ],
+        'E0986' => [
+            'adj_icon' => '⛔', 'adj_label' => xl('Rejected: Benefit Exclusion'),
+            'adj_bg' => '#fdecea', 'adj_color' => '#c0392b',
+            'sla_icon' => '✓', 'sla_label' => xl('Decision Received'),
+            'sla_bg' => '#e8f8ee', 'sla_color' => '#1e7e34',
+            'sla_subtext' => xl('Non-Covered Under Plan Rider'), 'sla_progress' => 100,
+            'action_label' => xl('Contact Payer'), 'action_type' => 'button',
+            'action_bg' => '#fff', 'action_color' => '#333', 'action_border' => '#ccc',
         ],
     ];
 
@@ -158,17 +176,22 @@ function buildMockPaDisplayData(array $iter, string $cpt, array $adj, int $appro
         '97542' => "Wheelchair management (e.g., assessment, fitting, training), each 15 minutes",
         '97162' => "Physical therapy evaluation: moderate complexity, 30 minutes",
         'K0848' => "Power wheelchair, group 3 standard, sling/solid seat/back, up to 300 lbs",
+        '97161' => "Blepharoplasty, upper eyelid; with excessive skin weighting down lid",
+        '99214' => "established patient office or outpatient visit lasting 30-39 minutes or requiring a moderate level of medical decision-making",
+        'E1002' => "Wheelchair accessory, power seating system",
+        'E0986' => "Manual wheelchair accessory, power assist system"
+
     ];
 
     // Determination "kind" drives letter styling — derive from the adjudication label
     // rather than hardcoding per-CPT, so it stays in sync with getPaAdjudicationForCpt().
     $label = $adj['adj_label'];
-    if (stripos($label, 'denied') !== false) {
+    if (stripos($label, 'denied') !== false || stripos($label, 'rejected') !== false) {
         $kind = 'denied';
+    } elseif (stripos($label, 'cancelled') !== false || stripos($label, 'voided') !== false) {
+        $kind = 'cancelled';
     } elseif (stripos($label, 'partial') !== false) {
         $kind = 'partial';
-    } elseif (stripos($label, 'pended') !== false) {
-        $kind = 'pended';
     } elseif (stripos($label, 'certified') !== false || stripos($label, 'approved') !== false || stripos($label, 'gold') !== false) {
         $kind = 'approved';
     } else {
@@ -349,13 +372,13 @@ const TABLE_TD = "</td><td>";
                         <th><?php echo xlt('Order ID'); ?></th>
                         <th><?php echo xlt('Encounter ID'); ?></th>
                         <th><?php echo xlt('Auth #'); ?></th>
-                        <th><?php echo xlt('PA Status'); ?></th>
+                        <th><?php echo xlt('Auth Required?'); ?></th>
                         <th><?php echo xlt('PA Adjudication Status'); ?></th>
                         <th><?php echo xlt('CPT/HCPCS'); ?></th>
                         <th><?php echo xlt('ICDs'); ?></th>
                         <th><?php echo xlt('Allotted / Remaining'); ?></th>
                         <th><?php echo xlt('Start Date'); ?></th>
-                        <th><?php echo xlt('Time In Status'); ?></th>
+                        <th><?php echo xlt('Time Remaining (CMS SLA)'); ?></th>
                         <th><?php echo xlt('Payload'); ?></th>
                         <th><?php echo xlt('Response'); ?></th>
                         <th><?php echo xlt('Print'); ?></th>
@@ -474,18 +497,67 @@ const TABLE_TD = "</td><td>";
                                 </td>
                                 <td>
                                     <?php if ($useMock) : ?>
+                                        <?php
+                                        $actionLabel = $adj['action_label'] ?? '';
+
+                                        // Decide which action this button is. Order matters.
+                                        if (stripos($actionLabel, 'fix') !== false) {
+                                            $actionKey = 'fix';
+                                        } elseif (stripos($actionLabel, 'ping') !== false) {
+                                            $actionKey = 'ping';
+                                        } elseif (stripos($actionLabel, 'p2p') !== false || stripos($actionLabel, 'join') !== false) {
+                                            $actionKey = 'p2p';
+                                        } elseif (stripos($actionLabel, 'remaining') !== false) {
+                                            $actionKey = 'remaining';
+                                        } elseif (stripos($actionLabel, 'appeal') !== false) {
+                                            $actionKey = 'appeal';
+                                        } elseif (stripos($actionLabel, 'documentation') !== false || stripos($actionLabel, 'submit') !== false) {
+                                            $actionKey = 'docs';
+                                        } elseif (stripos($actionLabel, 'contact') !== false) {
+                                            $actionKey = 'contact_payer';
+                                        } else {
+                                            $actionKey = '';
+                                        }
+
+                                        $actionStyle = 'background:' . attr($adj['action_bg']) . ';color:' . attr($adj['action_color']) . ';'
+                                                    . (isset($adj['action_border']) ? 'border:1px solid ' . attr($adj['action_border']) . ';' : '');
+                                        ?>
+
                                         <?php if ($adj['action_type'] === 'button') : ?>
-                                            <button type="button" class="btn btn-sm"
-                                                style="background:<?php echo attr($adj['action_bg']); ?>;color:<?php echo attr($adj['action_color']); ?>;<?php echo isset($adj['action_border']) ? 'border:1px solid ' . attr($adj['action_border']) . ';' : ''; ?>">
-                                                <?php echo text($adj['action_label']); ?>
-                                            </button>
+
+                                            <?php if ($actionKey === 'fix') : ?>
+                                                <button type="button" class="btn btn-sm" style="<?php echo $actionStyle; ?>"
+                                                    data-auth="<?php echo attr($adj['auth_no'] ?? ''); ?>"
+                                                    data-cpt="<?php echo attr($cpt); ?>"
+                                                    data-error="<?php echo attr($adj['error_message'] ?? 'Missing rendering provider NPI in Claim.careTeam entry.'); ?>"
+                                                    onclick="openErrorModal(this)">
+                                                    <?php echo text($actionLabel); ?>
+                                                </button>
+
+                                            <?php elseif ($actionKey !== '') : ?>
+                                                <button type="button" class="btn btn-sm" style="<?php echo $actionStyle; ?>"
+                                                    data-action="<?php echo attr($actionKey); ?>"
+                                                    data-auth="<?php echo attr($adj['auth_no'] ?? ''); ?>"
+                                                    data-cpt="<?php echo attr($cpt); ?>"
+                                                    data-message="<?php echo attr($adj['p2p_message'] ?? ''); ?>"
+                                                    onclick="paAction(this)">
+                                                    <?php echo text($actionLabel); ?>
+                                                </button>
+
+                                            <?php else : ?>
+                                                <button type="button" class="btn btn-sm" style="<?php echo $actionStyle; ?>">
+                                                    <?php echo text($actionLabel); ?>
+                                                </button>
+                                            <?php endif; ?>
+
                                         <?php else : ?>
                                             <span style="color:<?php echo attr($adj['action_color']); ?>;font-weight:600;">
-                                                <?php echo text($adj['action_label']); ?>
+                                                <?php echo text($actionLabel); ?>
                                             </span>
                                         <?php endif; ?>
+
                                     <?php else : ?>
-                                        N/A
+                                        -
                                     <?php endif; ?>
                                 </td>
                             </tr>
@@ -494,6 +566,62 @@ const TABLE_TD = "</td><td>";
                     }
                     ?>
                 </table>
+            </div>
+
+            <div class="modal fade" id="error-modal" tabindex="-1" role="dialog" aria-hidden="true">
+                <div class="modal-dialog modal-lg" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title text-danger">
+                                ⚠️ <?php echo xlt('Prior Authorization Submission Exception Triage'); ?>
+                            </h5>
+                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">&times;</button>
+                        </div>
+
+                        <div class="modal-body">
+                            <div class="p-3 mb-3 rounded" style="background:#fef2f2;border:1px solid #fca5a5;">
+                                <div class="font-weight-bold" style="color:#991b1b;" id="err-auth-no"></div>
+                                <div class="small" style="color:#b91c1c;" id="err-message"></div>
+                            </div>
+
+                            <h6 class="font-weight-bold"><?php echo xlt('Automated Remediation Assistant:'); ?></h6>
+
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="fix-npi" checked>
+                                <label class="form-check-label" for="fix-npi">
+                                    <strong><?php echo xlt("Inject Dr. Evelyn Reed's Individual NPI:"); ?></strong>
+                                    <div class="small text-muted">NPI: 1982736450 (Type 1 Individual) from Provider Registry</div>
+                                </label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="fix-taxonomy" checked>
+                                <label class="form-check-label" for="fix-taxonomy">
+                                    <strong><?php echo xlt('Attach Billing Taxonomy Code:'); ?></strong>
+                                    <div class="small text-muted">207X00000X — Orthopaedic Surgery</div>
+                                </label>
+                            </div>
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" id="fix-use" checked>
+                                <label class="form-check-label" for="fix-use">
+                                    <strong><?php echo xlt('Verify PAS Claim.use Header:'); ?></strong>
+                                    <div class="small text-muted">Sets 'use' = 'preauthorization' (HL7 Da Vinci STU 2.1 compliance)</div>
+                                </label>
+                            </div>
+
+                            <div class="p-2 small" style="background:#eff6ff;border-left:4px solid #3b82f6;">
+                                <strong>CMS-0057-F Exception Safe Harbor:</strong>
+                                Re-submitting corrected technical packets within 24 hours preserves original patient priority and statutory adjudication timeline.
+                            </div>
+                        </div>
+
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-outline-secondary" data-dismiss="modal"><?php echo xlt('Cancel'); ?></button>
+                            <button type="button" class="btn btn-danger" onclick="autoFixAndResubmit()">
+                                ⚡ <?php echo xlt('Apply Auto-Fix & Resubmit Now'); ?>
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div id="pa-json-modal" class="modal-backdrop" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:1000;align-items:center;justify-content:center;">
@@ -813,6 +941,59 @@ const TABLE_TD = "</td><td>";
                 event.target.style.display = 'none';
             }
         });
+
+        let currentFixBtn = null;
+
+        function openErrorModal(btn) {
+            currentFixBtn = btn;
+            document.getElementById('err-auth-no').textContent = btn.dataset.auth;
+            document.getElementById('err-message').textContent =
+                'Payer validation error on ' + btn.dataset.cpt + ': ' + btn.dataset.error;
+            $('#error-modal').modal('show');
+        }
+
+        function autoFixAndResubmit() {
+            const fixes = {
+                auth: currentFixBtn.dataset.auth,
+                cpt: currentFixBtn.dataset.cpt,
+                inject_npi: document.getElementById('fix-npi').checked,
+                attach_taxonomy: document.getElementById('fix-taxonomy').checked,
+                set_claim_use: document.getElementById('fix-use').checked
+            };
+            // TODO: POST `fixes` to your resubmit endpoint, then refresh the row/table.
+            console.log('Resubmit payload', fixes);
+            $('#error-modal').modal('hide');
+            alert('Corrected bundle transmitted. Status updated to: In Review (Adjudicating).');
+        }
+
+        function paAction(btn) {
+            const cpt  = btn.dataset.cpt;
+            const auth = btn.dataset.auth;
+
+            switch (btn.dataset.action) {
+                case 'ping':
+                    alert('Payer notification sent. Real-time webhook active.');
+                    break;
+
+                case 'appeal':
+                case 'remaining':
+                    alert(
+                        'Initiating Expedited Clinical Appeal for [' + cpt + ' - ' + auth + '].\n\n' +
+                        'CMS-0057-F Compliance Safeguard:\n' +
+                        '1. Attaches physician clinical appeal letter.\n' +
+                        '2. Preserves expedited 72-hour turnaround window.\n' +
+                        '3. Dispatches via HL7 Da Vinci PAS Appeal extension.'
+                    );
+                    break;
+
+                case 'p2p':
+                    alert(
+                        btn.dataset.message ||
+                        'Direct Dial to Payer Medical Director Dr. Chen: (800) 555-0199 ext 412. Scheduled: 2:00 PM EST.'
+                    );
+                    break;
+            }
+        }
     </script>
 
 </body>

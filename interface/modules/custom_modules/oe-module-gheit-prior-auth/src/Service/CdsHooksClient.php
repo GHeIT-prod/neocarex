@@ -153,6 +153,11 @@ class CdsHooksClient
             'prefetch'     => $prefetch,
         ];
 
+        $jsonPayload = json_encode(
+            $payload,
+            JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+        );
+
         $headers = ['Content-Type: application/json'];
         $token = $this->getBearerToken($service);
         if (!empty($token)) {

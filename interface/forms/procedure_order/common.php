@@ -323,6 +323,10 @@ if (($_POST['bn_save'] ?? null) || !empty($_POST['bn_xmit']) || !empty($_POST['b
         $query = "UPDATE forms SET form_name = ? WHERE encounter = ? AND form_id = ? AND formdir = ?";
         sqlStatement($query, [$lab_title, $encounter, $formid, 'procedure_order']);
 
+        // MOVED UP: save procedure codes before FHIR build/publish
+        sqlStatement("DELETE FROM procedure_answers WHERE procedure_order_id = ?", [$formid]);
+        saveProcedureOrderCodes($formid, $_POST);
+
         $uuid = sqlQuery("SELECT uuid FROM procedure_order WHERE procedure_order_id = ?", [$formid]);
         $serviceRequestUuid = UuidRegistry::uuidToString($uuid['uuid']);
 
@@ -346,8 +350,18 @@ if (($_POST['bn_save'] ?? null) || !empty($_POST['bn_xmit']) || !empty($_POST['b
         $mode = 'update';
         $viewmode = true;
 
+        // MOVED UP: save procedure codes before FHIR build/publish
+        sqlStatement("DELETE FROM procedure_answers WHERE procedure_order_id = ?", [$formid]);
+        saveProcedureOrderCodes($formid, $_POST);
+
         $uuid = sqlQuery("SELECT uuid FROM procedure_order WHERE procedure_order_id = ?", [$formid]);
         $serviceRequestUuid = UuidRegistry::uuidToString($uuid['uuid']);
+
+        (new \OpenEMR\Common\Logging\SystemLogger())->errorLogCaller('SR UUID DEBUG', [
+            'formid' => $formid,
+            'sqlQuery_result' => $uuid,
+            'serviceRequestUuid' => $serviceRequestUuid,
+        ]);
 
         $service = new FhirServiceRequestService();
         $result = $service->getOne($serviceRequestUuid);
@@ -396,9 +410,6 @@ if (($_POST['bn_save'] ?? null) || !empty($_POST['bn_xmit']) || !empty($_POST['b
     if ($order_log) {
         file_put_contents($log_file, $order_log);
     }
-
-    sqlStatement("DELETE FROM procedure_answers WHERE procedure_order_id = ?", [$formid]);
-    saveProcedureOrderCodes($formid, $_POST);
 
     if (isset($_POST['bn_save_exit'])) {
         formHeader("Redirecting....");
