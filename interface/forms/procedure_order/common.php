@@ -357,12 +357,6 @@ if (($_POST['bn_save'] ?? null) || !empty($_POST['bn_xmit']) || !empty($_POST['b
         $uuid = sqlQuery("SELECT uuid FROM procedure_order WHERE procedure_order_id = ?", [$formid]);
         $serviceRequestUuid = UuidRegistry::uuidToString($uuid['uuid']);
 
-        (new \OpenEMR\Common\Logging\SystemLogger())->errorLogCaller('SR UUID DEBUG', [
-            'formid' => $formid,
-            'sqlQuery_result' => $uuid,
-            'serviceRequestUuid' => $serviceRequestUuid,
-        ]);
-
         $service = new FhirServiceRequestService();
         $result = $service->getOne($serviceRequestUuid);
 
