@@ -56,9 +56,9 @@ class ListAuthorizations
                 INNER JOIN facility
                     ON procedure_order.location_id = facility.id
                 INNER JOIN users
-                    ON facility.id = users.facility_id
+                    ON procedure_order.provider_id = users.id
                 INNER JOIN insurance_data 
-                    ON procedure_order.patient_id = insurance_data.pid
+                    ON procedure_order.patient_id = insurance_data.pid AND insurance_data.type = 'primary'
                 INNER JOIN insurance_companies 
                     ON insurance_data.provider = insurance_companies.id
                 WHERE procedure_order.patient_id = ?
