@@ -363,6 +363,31 @@ if (($_POST['bn_save'] ?? null) || !empty($_POST['bn_xmit']) || !empty($_POST['b
         $serviceRequestResource = $result->getData()[0]->jsonSerialize();
         $serviceRequestResource = json_decode(json_encode($serviceRequestResource), true);
 
+        //authReference
+        $authRefSystem = 'https://gheit.co/fhir/pax/auth-ref';
+
+        $authoredOn = $serviceRequestResource['authoredOn'] ?? null;
+        if ($authoredOn) {
+            $authRef = 'AUTH-' . date('Y-m-d') . '-' . '00'.(int) $formid;
+
+            $identifiers = $serviceRequestResource['identifier'] ?? [];
+            $exists = false;
+            foreach ($identifiers as $i) {
+                if (($i['system'] ?? null) === $authRefSystem) {
+                    $exists = true;
+                    break;
+                }
+            }
+            if (!$exists) {
+                $identifiers[] = [
+                    'use'    => 'secondary',
+                    'system' => $authRefSystem,
+                    'value'  => $authRef,
+                ];
+                $serviceRequestResource['identifier'] = $identifiers;
+            }
+        }
+
         $hasReference = FhirReferenceDetector::hasReference($serviceRequestResource);
 
         if ($hasReference) {

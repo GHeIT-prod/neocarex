@@ -429,13 +429,15 @@ const TABLE_TD = "</td><td>";
                                     <?php endif; ?>
                                 </td>
                                 <td>
-                                    <span class="badge badge-pill" style="background:<?php echo attr($adj['adj_bg']); ?>;color:<?php echo attr($adj['adj_color']); ?>;padding:6px 12px;">
-                                        <?php if ($useMock): ?>
+                                    <?php if ($useMock): ?>
+                                        <span class="badge badge-pill" style="background:<?php echo attr($adj['adj_bg']); ?>;color:<?php echo attr($adj['adj_color']); ?>;padding:6px 12px;">
                                             <?php echo htmlspecialchars($adj['adj_icon']); ?> <?php echo text($adj['adj_label']); ?>
-                                        <?php else: ?>
+                                        </span>
+                                    <?php else: ?>
+                                        <span class="badge badge-pill <?php echo attr($statusBadgeClass); ?>" data-field="status-badge" style="padding:6px 12px;">
                                             <?php echo text($statusLabel); ?>
-                                        <?php endif; ?>
-                                    </span>
+                                        </span>
+                                    <?php endif; ?>
                                 </td>
                                 <td><?php echo text($cpt); ?></td>
                                 <td><?php echo text($icds); ?></td>
