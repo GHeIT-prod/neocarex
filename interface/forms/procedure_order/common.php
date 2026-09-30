@@ -364,7 +364,7 @@ if (($_POST['bn_save'] ?? null) || !empty($_POST['bn_xmit']) || !empty($_POST['b
         $serviceRequestResource = json_decode(json_encode($serviceRequestResource), true);
 
         //authReference
-        $authRefSystem = 'https://gheit.co/fhir/pax/auth-ref';
+        $authRefSystem = $_ENV['AUTH_REF_SYSTEM'];
 
         $authoredOn = $serviceRequestResource['authoredOn'] ?? null;
         if ($authoredOn) {
