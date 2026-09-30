@@ -238,11 +238,11 @@ class StatusSync
 
             sqlStatement(
                 'UPDATE cds_hooks_crd_status
-                    SET status = ?, approved_quantity = ?,
+                    SET status = ?, authorization_number = ?, approved_quantity = ?,
                         denial_reason = ?, cpt_code = ?, seq = ?, occurred_at = ?,
                         updated_at = NOW()
                   WHERE order_id = ?',
-                [$state, $approvedQuantity, $denialReason, $cptCode, $seq, $occurredAt, $orderId]
+                [$state, $authNumber, $approvedQuantity, $denialReason, $cptCode, $seq, $occurredAt, $orderId]
             );
 
             sqlStatement(

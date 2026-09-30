@@ -898,7 +898,7 @@ function generate_order_report($orderid, $input_form = false, $genstyles = true,
 
     <script>
         (function () {
-            var container = document.getElementById('pa-status-container-<?php echo js_escape($orderid); ?>');
+            var container = document.getElementById(<?php echo js_escape('pa-status-container-' . $orderid); ?>);
             if (!container) {
                 return;
             }
