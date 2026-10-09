@@ -28,8 +28,8 @@ use OpenEMR\Validators\ProcessingResult;
 use OpenEMR\Events\Facility\FacilityCreatedEvent;
 use OpenEMR\Events\Facility\FacilityUpdatedEvent;
 use Particle\Validator\Validator;
-use OpenEMR\Modules\CustomModuleGheit\Controller\PubSub;
 use OpenEMR\Services\FHIR\FhirOrganizationService;
+use OpenEMR\Modules\CustomModuleGheit\Controller\SqsPublisher;
 
 class FacilityService extends BaseService
 {
@@ -223,8 +223,19 @@ class FacilityService extends BaseService
         $organization = $result->getData()[0];
         $fhirArray = $organization->jsonSerialize();
 
-        $pubSubController = new PubSub();
-        $pubSubController->publishPubsub('Organization', 'organization_updated', 'organization_data', $fhirArray);
+         /**
+         * Publish Organization update to SQS
+         */
+        $eventPayload = [
+            'timestamp' => date('c'),
+            'data'      => $fhirArray,
+        ];
+
+        try {
+            (new SqsPublisher())->publish('organization_updated', 'PUT', $eventPayload, $facilityUuid);
+        } catch (\Throwable $e) {
+            error_log('SQS publisher failed: ' . $e->getMessage());
+        }
 
         $facilityUpdatedEvent = new FacilityUpdatedEvent($dataBeforeUpdate, $data);
         $GLOBALS["kernel"]->getEventDispatcher()->dispatch($facilityUpdatedEvent, FacilityUpdatedEvent::EVENT_HANDLE, 10);
@@ -263,8 +274,19 @@ class FacilityService extends BaseService
         $organization = $result->getData()[0];
         $fhirArray = $organization->jsonSerialize();
 
-        $pubSubController = new PubSub();
-        $pubSubController->publishPubsub('Organization', 'organization_created', 'organization_data', $fhirArray);
+        /**
+         * Publish Organization create to SQS
+         */
+        $eventPayload = [
+            'timestamp' => date('c'),
+            'data'      => $fhirArray,
+        ];
+
+        try {
+            (new SqsPublisher())->publish('organization_created', 'POST', $eventPayload, $facilityUuid);
+        } catch (\Throwable $e) {
+            error_log('SQS publisher failed: ' . $e->getMessage());
+        }
 
         $facilityCreatedEvent = new FacilityCreatedEvent(array_merge($data, ['id' => $facilityId]));
         $GLOBALS["kernel"]->getEventDispatcher()->dispatch($facilityCreatedEvent, FacilityCreatedEvent::EVENT_HANDLE, 10);
