@@ -31,10 +31,10 @@ use OpenEMR\Core\Header;
 use OpenEMR\MedicalDevice\MedicalDevice;
 use OpenEMR\Services\PatientIssuesService;
 use OpenEMR\Services\Utils\DateFormatterUtils;
-use OpenEMR\Modules\CustomModuleGheit\Controller\PubSub;
 use OpenEMR\Services\FHIR\FhirConditionService;
 use OpenEMR\Services\FHIR\FhirMedicationRequestService;
 use OpenEMR\Common\Uuid\UuidRegistry;
+use OpenEMR\Modules\CustomModuleGheit\Controller\SqsPublisher;
 
 $session = SessionWrapperFactory::getInstance()->getWrapper();
 
@@ -300,28 +300,84 @@ if (!empty($_POST['form_save'])) {
     if ($issue) {
         $patientIssuesService->updateIssue($issueRecord);
 
-        //pubsub updates for condition and medication request when issue is edited
+        //updates for condition and medication request when issue is edited
         if ($issueRecord['type'] == 'medical_problem') {
             $uuid = sqlQuery("SELECT uuid FROM lists WHERE pid = ? AND id = ?", [$thispid, $issue])['uuid'];
             $conditionUuid = UuidRegistry::uuidToString($uuid);
             $service = new FhirConditionService();
             $result = $service->getOne($conditionUuid);
-            $condition = $result->getData()[0];
-            $fhirArray = $condition->jsonSerialize();
+            $condition = $result->getData()[0]->jsonSerialize();
+            $condition = json_decode(json_encode($condition), true);
 
-            $pubSubController = new PubSub();
-            $pubSubController->publishPubsub('Condition', 'condition_updated', 'condition_data', $fhirArray);
+            $hasReference = FhirReferenceDetector::hasReference($condition);
+
+            if ($hasReference) {
+                $resolved = FhirResourceResolver::resolveResourceContext($condition);
+
+                $payload = FhirBundleBuilder::buildTransactionBundle(
+                    $resolved['patient'],
+                    $resolved['resource'],
+                    $resolved['locations'] ?? [],
+                    $resolved['organizations'] ?? [],
+                    $resolved['practitioners'] ?? []
+                );
+
+            } else {
+                $payload = $condition;
+            }
+
+            /**
+             * Publish Condition update to SQS
+             */
+            $eventPayload = [
+                'timestamp' => date('c'),
+                'data'      => $payload,
+            ];
+
+            try {
+                (new SqsPublisher())->publish('condition_updated', 'PUT', $eventPayload, $conditionUuid);
+            } catch (\Throwable $e) {
+                error_log('SQS publisher failed: ' . $e->getMessage());
+            }
 
         } elseif($issueRecord['type'] == 'medication') {
             $uuid = sqlQuery("SELECT uuid FROM lists WHERE pid = ? AND id = ?", [$thispid, $issue])['uuid'];
             $medicationRequestUuid = UuidRegistry::uuidToString($uuid);
             $service = new FhirMedicationRequestService();
             $result = $service->getOne($medicationRequestUuid);
-            $medicationRequest = $result->getData()[0];
-            $fhirArray = $medicationRequest->jsonSerialize();
+            $medicationRequest = $result->getData()[0]->jsonSerialize();
+            $medicationRequest = json_decode(json_encode($medicationRequest), true);
 
-            $pubSubController = new PubSub();
-            $pubSubController->publishPubsub('MedicationRequest', 'medication_request_updated', 'medication_request_data', $fhirArray);
+            $hasReference = FhirReferenceDetector::hasReference($medicationRequest);
+
+            if ($hasReference) {
+                $resolved = FhirResourceResolver::resolveResourceContext($medicationRequest);
+
+                $payload = FhirBundleBuilder::buildTransactionBundle(
+                    $resolved['patient'],
+                    $resolved['resource'],
+                    $resolved['locations'] ?? [],
+                    $resolved['organizations'] ?? [],
+                    $resolved['practitioners'] ?? []
+                );
+
+            } else {
+                $payload = $medicationRequest;
+            }
+
+            /**
+             * Publish MedicationRequest update to SQS
+             */
+            $eventPayload = [
+                'timestamp' => date('c'),
+                'data'      => $payload,
+            ];
+
+            try {
+                (new SqsPublisher())->publish('medication_request_updated', 'PUT', $eventPayload, $medicationRequestUuid);
+            } catch (\Throwable $e) {
+                error_log('SQS publisher failed: ' . $e->getMessage());
+            }
         }
 
     } else {
@@ -336,14 +392,6 @@ if (!empty($_POST['form_save'])) {
         if ($issueRecord['type'] == 'medical_problem') {
             $uuid = sqlQuery("SELECT uuid FROM lists WHERE pid = ? AND id = ?", [$thispid, $issue])['uuid'];
             $conditionUuid = UuidRegistry::uuidToString($uuid);
-
-            // $service = new FhirConditionService();
-            // $result = $service->getOne($conditionUuid);
-            // $condition = $result->getData()[0];
-            // $fhirArray = $condition->jsonSerialize();
-
-            // $pubSubController = new PubSub();
-            // $pubSubController->publishPubsub('Condition', 'condition_created', 'condition_data', $fhirArray);
 
             $service = new FhirConditionService();
             $result = $service->getOne($conditionUuid);
@@ -368,24 +416,23 @@ if (!empty($_POST['form_save'])) {
                 $payload = $condition;
             }
 
-            $pubSubController = new PubSub();
-            $pubSubController->publishPubsub(
-                'Condition',
-                'condition_created',
-                'condition_data',
-                $payload
-            );
+            /**
+             * Publish Condition create to SQS
+             */
+            $eventPayload = [
+                'timestamp' => date('c'),
+                'data'      => $payload,
+            ];
+
+            try {
+                (new SqsPublisher())->publish('condition_created', 'POST', $eventPayload, $conditionUuid);
+            } catch (\Throwable $e) {
+                error_log('SQS publisher failed: ' . $e->getMessage());
+            }
 
         } elseif($issueRecord['type'] == 'medication') {
             $uuid = sqlQuery("SELECT uuid FROM lists WHERE pid = ? AND id = ?", [$thispid, $issue])['uuid'];
             $medicationRequestUuid = UuidRegistry::uuidToString($uuid);
-            // $service = new FhirMedicationRequestService();
-            // $result = $service->getOne($medicationRequestUuid);
-            // $medicationRequest = $result->getData()[0];
-            // $fhirArray = $medicationRequest->jsonSerialize();
-
-            // $pubSubController = new PubSub();
-            // $pubSubController->publishPubsub('MedicationRequest', 'medication_request_created', 'medication_request_data', $fhirArray);
 
             $service = new FhirMedicationRequestService();
             $result = $service->getOne($medicationRequestUuid);
@@ -410,13 +457,19 @@ if (!empty($_POST['form_save'])) {
                 $payload = $medicationRequest;
             }
 
-            $pubSubController = new PubSub();
-            $pubSubController->publishPubsub(
-                'MedicationRequest',
-                'medication_request_created',
-                'medication_request_data',
-                $payload
-            );
+            /**
+             * Publish MedicationRequest create to SQS
+             */
+            $eventPayload = [
+                'timestamp' => date('c'),
+                'data'      => $payload,
+            ];
+
+            try {
+                (new SqsPublisher())->publish('medication_request_created', 'POST', $eventPayload, $medicationRequestUuid);
+            } catch (\Throwable $e) {
+                error_log('SQS publisher failed: ' . $e->getMessage());
+            }
         }
     }
 
