@@ -33,8 +33,8 @@ use OpenEMR\Core\Header;
 use OpenEMR\Services\UserService;
 use OpenEMR\Events\User\UserUpdatedEvent;
 use OpenEMR\Events\User\UserCreatedEvent;
-use OpenEMR\Modules\CustomModuleGheit\Controller\PubSub;
 use OpenEMR\Services\FHIR\FhirPractitionerService;
+use OpenEMR\Modules\CustomModuleGheit\Controller\SqsPublisher;
 
 if (!empty($_REQUEST)) {
     if (!CsrfUtils::verifyCsrfToken($_REQUEST["csrf_token_form"])) {
@@ -459,15 +459,26 @@ if (isset($_POST["mode"])) {
             $submittedData = $_POST;
             $submittedData['uuid'] = $uuid ?? null;
 
-            $facilityUuid = UuidRegistry::uuidToString($submittedData['uuid']);
+            $practitionerUuid = UuidRegistry::uuidToString($submittedData['uuid']);
 
             $service = new FhirPractitionerService();
-            $result = $service->getOne($facilityUuid);
+            $result = $service->getOne($practitionerUuid);
             $practitioner = $result->getData()[0];
             $fhirArray = $practitioner->jsonSerialize();
 
-            $pubSubController = new PubSub();
-            $pubSubController->publishPubsub('Practitioner', 'practitioner_created', 'practitioner_data', $fhirArray);
+            /**
+             * Publish Practitioner create to SQS
+             */
+            $eventPayload = [
+                'timestamp' => date('c'),
+                'data'      => $fhirArray,
+            ];
+
+            try {
+                (new SqsPublisher())->publish('practitioner_created', 'POST', $eventPayload, $practitionerUuid);
+            } catch (\Throwable $e) {
+                error_log('SQS publisher failed: ' . $e->getMessage());
+            }
 
             $submittedData['username'] = $submittedData['rumple'] ?? null;
             $userCreatedEvent = new UserCreatedEvent($submittedData);

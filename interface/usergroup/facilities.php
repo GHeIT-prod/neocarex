@@ -21,7 +21,6 @@ use OpenEMR\Common\Csrf\CsrfUtils;
 use OpenEMR\Common\Twig\TwigContainer;
 use OpenEMR\Core\Header;
 use OpenEMR\Services\FacilityService;
-use OpenEMR\Modules\CustomModuleGheit\Controller\PubSub;
 use OpenEMR\Common\Uuid\UuidRegistry;
 use OpenEMR\Services\FHIR\FhirOrganizationService;
 use OpenEMR\Services\FHIR\FhirConditionService;
@@ -83,8 +82,6 @@ foreach ($columns as $c => $v) {
     $k = ($columns[$c] !== true) ? $v : $c;
     $values[$c] = trim($_POST[$k] ?? '');
 }
-
-$pubSubEvent = $_POST['newmode']=="admin_facility" ? 'organization_updated':'organization_created';
 
 /*      Inserting New facility                  */
 if (($_POST["mode"] ?? "") == "facility" && (empty($_POST["newmode"]) || ($_POST["newmode"] != "admin_facility"))) {

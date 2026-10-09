@@ -38,10 +38,10 @@ use OpenEMR\Core\Header;
 use OpenEMR\Events\Services\DornLabEvent;
 use OpenEMR\Events\Services\QuestLabTransmitEvent;
 use Symfony\Component\EventDispatcher\EventDispatcher;
-use OpenEMR\Modules\CustomModuleGheit\Controller\PubSub;
 use OpenEMR\Services\FHIR\FhirProcedureService;
 use OpenEMR\Services\FHIR\FhirServiceRequestService;
 use OpenEMR\Events\Orders\ProcedureOrderCreatedEvent;
+use OpenEMR\Modules\CustomModuleGheit\Controller\SqsPublisher;
 
 if (!$encounter) { // comes from globals.php
     die("Internal error: we do not seem to be in an encounter!");
@@ -332,11 +332,40 @@ if (($_POST['bn_save'] ?? null) || !empty($_POST['bn_xmit']) || !empty($_POST['b
 
         $service = new FhirServiceRequestService();
         $serviceRequestResult = $service->getOne($serviceRequestUuid);
-        $serviceRequestResource = $serviceRequestResult->getData()[0];
-        $fhirArray = $serviceRequestResource->jsonSerialize();
+        $serviceRequestResource = $serviceRequestResult->getData()[0]->jsonSerialize();
+        $serviceRequestResource = json_decode(json_encode($serviceRequestResource), true);
 
-        $pubSubController = new PubSub();
-        $pubSubController->publishPubsub('ServiceRequest', 'service_request_updated', 'service_request_data', $fhirArray);
+        $hasReference = FhirReferenceDetector::hasReference($serviceRequestResource);
+
+        if ($hasReference) {
+            $resolved = FhirResourceResolver::resolveResourceContext($serviceRequestResource);
+
+            $payload = FhirBundleBuilder::buildTransactionBundle(
+                $resolved['patient'],
+                $resolved['resource'],
+                $resolved['locations'] ?? [],
+                $resolved['organizations'] ?? [],
+                $resolved['practitioners'] ?? [],
+                $resolved['encounters'] ?? []
+            );
+
+        } else {
+            $payload = $serviceRequestResource;
+        }
+
+        /**
+        * Publish ServiceRequest update to SQS
+        */
+        $eventPayload = [
+            'timestamp' => date('c'),
+            'data'      => $payload,
+        ];
+
+        try {
+            (new SqsPublisher())->publish('service_request_updated', 'PUT', $eventPayload, $serviceRequestUuid);
+        } catch (\Throwable $e) {
+            error_log('SQS publisher failed: ' . $e->getMessage());
+        }
 
     } else {
         $query = "INSERT INTO procedure_order SET $sets";
@@ -406,13 +435,19 @@ if (($_POST['bn_save'] ?? null) || !empty($_POST['bn_xmit']) || !empty($_POST['b
             $payload = $serviceRequestResource;
         }
 
-        $pubSubController = new PubSub();
-        $pubSubController->publishPubsub(
-            'ServiceRequest',
-            'service_request_created',
-            'service_request_data',
-            $payload
-        );
+        /**
+        * Publish ServiceRequest create to SQS
+        */
+        $eventPayload = [
+            'timestamp' => date('c'),
+            'data'      => $payload,
+        ];
+
+        try {
+            (new SqsPublisher())->publish('service_request_created', 'POST', $eventPayload, $serviceRequestUuid);
+        } catch (\Throwable $e) {
+            error_log('SQS publisher failed: ' . $e->getMessage());
+        }
 
         $event = new ProcedureOrderCreatedEvent(
             (int) $formid,
