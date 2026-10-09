@@ -19,9 +19,9 @@ use OpenEMR\Services\ContactService;
 use OpenEMR\Services\ContactAddressService;
 use OpenEMR\Common\Logging\SystemLogger;
 use OpenEMR\Events\Patient\PatientBeforeCreatedAuxEvent;
-use OpenEMR\Modules\CustomModuleGheit\Controller\PubSub;
 use OpenEMR\Common\Uuid\UuidRegistry;
 use OpenEMR\Services\FHIR\FhirPatientService;
+use OpenEMR\Modules\CustomModuleGheit\Controller\SqsPublisher;
 
 if (!CsrfUtils::verifyCsrfToken($_POST["csrf_token_form"])) {
     CsrfUtils::csrfNotVerified();
@@ -104,7 +104,6 @@ $uuid = sqlQuery("SELECT uuid FROM patient_data WHERE pid = ?", [$pid])['uuid'];
 $patientuuid = UuidRegistry::uuidToString($uuid);
 
 require_once __DIR__ . '/../../vendor/autoload.php';
-require_once __DIR__ . '/../modules/custom_modules/oe-module-custom-gheit/src/Controller/PubSub.php';
 
 $service = new FhirPatientService();
 
@@ -197,13 +196,19 @@ if (isset($fhirArray['communication'])) {
     }
 }
 
-/*
-|--------------------------------------------------------------------------
-| PUBLISH
-|--------------------------------------------------------------------------
-*/
-$pubSubController = new PubSub();
-$pubSubController->publishPubsub('Patient', 'patient_created', 'patient_data', $fhirArray);
+/**
+ * Publish Patient create to SQS
+ */
+$eventPayload = [
+    'timestamp' => date('c'),
+    'data'      => $fhirArray,
+];
+
+try {
+    (new SqsPublisher())->publish('patient_created', 'POST', $eventPayload, $patientuuid);
+} catch (\Throwable $e) {
+    error_log('SQS publisher failed: ' . $e->getMessage());
+}
 
 if (empty($pid)) {
     die("Internal error: setpid(" . text($pid) . ") failed!");
