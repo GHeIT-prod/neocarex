@@ -34,13 +34,11 @@ use OpenEMR\Services\Search\ISearchField;
 use OpenEMR\Services\Utils\DateFormatterUtils;
 use OpenEMR\Validators\ProcessingResult;
 use Exception;
-use Google\Cloud\PubSub\PubSubClient;
-use Ramsey\Uuid\Uuid;
-use OpenEMR\Modules\CustomModuleGheit\Controller\PubSub;
 use OpenEMR\Services\FHIR\FhirObservationService;
 use FhirReferenceDetector;
 use FhirResourceResolver;
 use FhirBundleBuilder;
+use OpenEMR\Modules\CustomModuleGheit\Controller\SqsPublisher;
 
 class ObservationService extends BaseService
 {
@@ -581,11 +579,41 @@ class ObservationService extends BaseService
 
             $service = new FhirObservationService();
             $observationResult = $service->getOne($observationUUID);
-            $observationResource = $observationResult->getData()[0];
-            $fhirArray = $observationResource->jsonSerialize();
 
-            $pubSubController = new PubSub();
-            $pubSubController->publishPubsub('Observation', 'observation_updated', 'observation_data', $fhirArray);
+            $observationResource = $result->getData()[0]->jsonSerialize();
+            $observationResource = json_decode(json_encode($observationResource), true);
+
+            $hasReference = FhirReferenceDetector::hasReference($observationResource);
+
+            if ($hasReference) {
+                $resolved = FhirResourceResolver::resolveResourceContext($observationResource);
+
+                $payload = FhirBundleBuilder::buildTransactionBundle(
+                    $resolved['patient'],
+                    $resolved['resource'],
+                    $resolved['locations'] ?? [],
+                    $resolved['organizations'] ?? [],
+                    $resolved['practitioners'] ?? [],
+                    $resolved['encounters'] ?? []
+                );
+
+            } else {
+                $payload = $observationResource;
+            }
+
+            /**
+            * Publish Observation update to SQS
+            */
+            $eventPayload = [
+                'timestamp' => date('c'),
+                'data'      => $payload,
+            ];
+
+            try {
+                (new SqsPublisher())->publish('observation_updated', 'PUT', $eventPayload, $observationUUID);
+            } catch (\Throwable $e) {
+                error_log('SQS publisher failed: ' . $e->getMessage());
+            }
 
         } else {
 
@@ -597,14 +625,6 @@ class ObservationService extends BaseService
 
             $uuid = sqlQuery("SELECT uuid FROM form_observation WHERE id = ?", [$observationData['id']]);
             $observationUUID = UuidRegistry::uuidToString($uuid['uuid']);
-
-            // $service = new FhirObservationService();
-            // $observationResult = $service->getOne($observationUUID);
-            // $observationResource = $observationResult->getData()[0];
-            // $fhirArray = $observationResource->jsonSerialize();
-
-            // $pubSubController = new PubSub();
-            // $pubSubController->publishPubsub('Observation', 'observation_created', 'observation_data', $fhirArray);
 
             $service = new FhirObservationService();
             $result = $service->getOne($observationUUID);
@@ -630,13 +650,19 @@ class ObservationService extends BaseService
                 $payload = $observationResource;
             }
 
-            $pubSubController = new PubSub();
-            $pubSubController->publishPubsub(
-                'Observation',
-                'observation_created',
-                'observation_data',
-                $payload
-            );
+            /**
+            * Publish Observation create to SQS
+            */
+            $eventPayload = [
+                'timestamp' => date('c'),
+                'data'      => $payload,
+            ];
+
+            try {
+                (new SqsPublisher())->publish('observation_created', 'POST', $eventPayload, $observationUUID);
+            } catch (\Throwable $e) {
+                error_log('SQS publisher failed: ' . $e->getMessage());
+            }
 
 
         }

@@ -30,9 +30,6 @@ use OpenEMR\Common\Uuid\UuidRegistry;
 use OpenEMR\Common\Session\SessionWrapperFactory;
 use OpenEMR\Events\PatientDocuments\PatientDocumentStoreOffsite;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
-use Google\Cloud\PubSub\PubSubClient;
-use Ramsey\Uuid\Uuid;
-use OpenEMR\Modules\CustomModuleGheit\Controller\PubSub;
 use OpenEMR\Services\FHIR\FhirDocumentReferenceService;
 // use OpenEMR\Services\FileStorage\FileStorageException;
 // use OpenEMR\Services\FileStorage\FileValidationException;
@@ -40,6 +37,7 @@ use OpenEMR\Services\FHIR\FhirDocumentReferenceService;
 use OpenEMR\Modules\GheitS3\Services\FileStorage\FileStorageException;
 use OpenEMR\Modules\GheitS3\Services\FileStorage\FileValidationException;
 use OpenEMR\Modules\GheitS3\Services\FileStorage\PatientDocumentStorageService;
+use OpenEMR\Modules\CustomModuleGheit\Controller\SqsPublisher;
 
 class Document extends ORDataObject
 {
@@ -1140,49 +1138,6 @@ class Document extends ORDataObject
             $this->_db->Execute($sql, [$category_id, $this->get_id()]);
         }
 
-        //publish the document reference to the pubsub system
-        $documentUuid = UuidRegistry::uuidToString($docUUID);
-
-        // $service = new FhirDocumentReferenceService();
-        // $result = $service->getOne($documentUuid);
-        // $documentRef = $result->getData()[0];
-        // $fhirArray = $documentRef->jsonSerialize();
-
-        // $pubSubController = new PubSub();
-        // $pubSubController->publishPubsub('DocumentReference', 'document_uploaded', 'document_data', $fhirArray);
-
-        $service = new FhirDocumentReferenceService();
-        $result = $service->getOne($documentUuid);
-
-        $documentRef = $result->getData()[0]->jsonSerialize();
-        $documentRef = json_decode(json_encode($documentRef), true);
-
-        $hasReference = FhirReferenceDetector::hasReference($documentRef);
-
-        if ($hasReference) {
-            $resolved = FhirResourceResolver::resolveResourceContext($documentRef);
-
-            $payload = FhirBundleBuilder::buildTransactionBundle(
-                $resolved['patient'],
-                $resolved['resource'],
-                $resolved['locations'] ?? [],
-                $resolved['organizations'] ?? [],
-                $resolved['practitioners'] ?? [],
-                $resolved['encounters'] ?? []
-            );
-
-        } else {
-            $payload = $documentRef;
-        }
-
-        $pubSubController = new PubSub();
-        $pubSubController->publishPubsub(
-            'DocumentReference',
-            'document_uploaded',
-            'document_data',
-            $payload
-        );
-
         return '';
     }
 
@@ -1251,11 +1206,41 @@ class Document extends ORDataObject
             $documentUuid = UuidRegistry::uuidToString($this->get_uuid());
             $service = new FhirDocumentReferenceService();
             $result = $service->getOne($documentUuid);
-            $documentRef = $result->getData()[0];
-            $fhirArray = $documentRef->jsonSerialize();
 
-            $pubSubController = new PubSub();
-            $pubSubController->publishPubsub('DocumentReference', 'document_uploaded', 'document_data', $fhirArray);
+            $documentRef = $result->getData()[0]->jsonSerialize();
+            $documentRef = json_decode(json_encode($documentRef), true);
+
+            $hasReference = FhirReferenceDetector::hasReference($documentRef);
+
+            if ($hasReference) {
+                $resolved = FhirResourceResolver::resolveResourceContext($documentRef);
+
+                $payload = FhirBundleBuilder::buildTransactionBundle(
+                    $resolved['patient'],
+                    $resolved['resource'],
+                    $resolved['locations'] ?? [],
+                    $resolved['organizations'] ?? [],
+                    $resolved['practitioners'] ?? [],
+                    $resolved['encounters'] ?? []
+                );
+
+            } else {
+                $payload = $documentRef;
+            }
+
+            /**
+            * Publish DocumentReference upload to SQS
+            */
+            $eventPayload = [
+                'timestamp' => date('c'),
+                'data'      => $payload,
+            ];
+
+            try {
+                (new SqsPublisher())->publish('document_uploaded', 'POST', $eventPayload, $documentUuid);
+            } catch (\Throwable $e) {
+                error_log('SQS publisher failed: ' . $e->getMessage());
+            }
 
             return '';
         } catch (FileValidationException $exception) {

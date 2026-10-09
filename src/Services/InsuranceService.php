@@ -38,11 +38,11 @@ use OpenEMR\Validators\{
     CoverageValidator,
     ProcessingResult,
 };
-use OpenEMR\Modules\CustomModuleGheit\Controller\PubSub;
 use OpenEMR\Services\FHIR\FhirCoverageService;
 use FhirReferenceDetector;
 use FhirResourceResolver;
 use FhirBundleBuilder;
+use OpenEMR\Modules\CustomModuleGheit\Controller\SqsPublisher;
 
 class InsuranceService extends BaseService
 {
@@ -316,14 +316,6 @@ class InsuranceService extends BaseService
 
         $coverageUuid = UuidRegistry::uuidToString($uuid);
 
-        // $service = new FhirCoverageService();
-        // $result = $service->getOne($coverageUuid);
-        // $coverage = $result->getData()[0];
-        // $fhirArray = $coverage->jsonSerialize();
-
-        // $pubSubController = new PubSub();
-        // $pubSubController->publishPubsub('Coverage', 'coverage_created', 'coverage_data', $fhirArray);
-
         $service = new FhirCoverageService();
         $result = $service->getOne($coverageUuid);
 
@@ -347,13 +339,19 @@ class InsuranceService extends BaseService
             $payload = $coverage;
         }
 
-        $pubSubController = new PubSub();
-        $pubSubController->publishPubsub(
-            'Coverage',
-            'coverage_updated',
-            'coverage_data',
-            $payload
-        );
+        /**
+        * Publish Coverage update to SQS
+        */
+        $eventPayload = [
+            'timestamp' => date('c'),
+            'data'      => $payload,
+        ];
+
+        try {
+            (new SqsPublisher())->publish('coverage_updated', 'PUT', $eventPayload, $coverageUuid);
+        } catch (\Throwable $e) {
+            error_log('SQS publisher failed: ' . $e->getMessage());
+        }
 
         if ($results) {
             $serviceSavePostEvent = new ServiceSaveEvent($this, $data);
@@ -473,13 +471,19 @@ class InsuranceService extends BaseService
             $payload = $coverage;
         }
 
-        $pubSubController = new PubSub();
-        $pubSubController->publishPubsub(
-            'Coverage',
-            'coverage_created',
-            'coverage_data',
-            $payload
-        );
+        /**
+        * Publish Coverage update to SQS
+        */
+        $eventPayload = [
+            'timestamp' => date('c'),
+            'data'      => $payload,
+        ];
+
+        try {
+            (new SqsPublisher())->publish('coverage_created', 'POST', $eventPayload, $stringUuid);
+        } catch (\Throwable $e) {
+            error_log('SQS publisher failed: ' . $e->getMessage());
+        }
 
         if ($insuranceDataId) {
             $data['id'] = $insuranceDataId;

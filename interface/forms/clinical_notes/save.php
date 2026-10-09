@@ -25,11 +25,11 @@ require_once dirname(__DIR__, 3) . '/library/fhir/FhirResourceResolver.php';
 use OpenEMR\Common\Csrf\CsrfUtils;
 use OpenEMR\Common\Uuid\UuidRegistry;
 use OpenEMR\Services\ClinicalNotesService;
-use OpenEMR\Modules\CustomModuleGheit\Controller\PubSub;
 use OpenEMR\Services\FHIR\FhirDiagnosticReportService;
 use FhirReferenceDetector;
 use FhirResourceResolver;
 use FhirBundleBuilder;
+use OpenEMR\Modules\CustomModuleGheit\Controller\SqsPublisher;
 
 if (!CsrfUtils::verifyCsrfToken($_POST["csrf_token_form"])) {
     CsrfUtils::csrfNotVerified();
@@ -144,14 +144,6 @@ if (!empty($count)) {
     $uuid = sqlQuery("SELECT uuid FROM form_clinical_notes WHERE id = ?", [$clinicalNoteId]);
     $clinicalUUID = UuidRegistry::uuidToString($uuid['uuid']);
 
-    // $service = new FhirDiagnosticReportService();
-    // $clinicalResult = $service->getOne($clinicalUUID);
-    // $clinicalResource = $clinicalResult->getData()[0];
-    // $fhirArray = $clinicalResource->jsonSerialize();
-
-    // $pubSubController = new PubSub();
-    // $pubSubController->publishPubsub('DiagnosticReport', 'diagnostic_report_created', 'diagnostic_report_data', $fhirArray);
-
     $service = new FhirDiagnosticReportService();
     $result = $service->getOne($clinicalUUID);
 
@@ -176,13 +168,19 @@ if (!empty($count)) {
         $payload = $clinicalNotes;
     }
 
-    $pubSubController = new PubSub();
-    $pubSubController->publishPubsub(
-        'DiagnosticReport',
-        'diagnostic_report_created',
-        'diagnostic_report_data',
-        $payload
-    );
+    /**
+    * Publish Diagnostic Report create to SQS
+    */
+    $eventPayload = [
+        'timestamp' => date('c'),
+        'data'      => $payload,
+    ];
+
+    try {
+        (new SqsPublisher())->publish('diagnostic_report_created', 'POST', $eventPayload, $clinicalUUID);
+    } catch (\Throwable $e) {
+        error_log('SQS publisher failed: ' . $e->getMessage());
+    }
 
 }
 

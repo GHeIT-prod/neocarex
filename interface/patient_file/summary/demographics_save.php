@@ -24,6 +24,9 @@ use OpenEMR\Services\ContactTelecomService;
 use OpenEMR\Services\ContactRelationService;
 use OpenEMR\Events\Patient\PatientUpdatedEventAux;
 use OpenEMR\Common\Logging\SystemLogger;
+use OpenEMR\Services\FHIR\FhirPatientService;
+use OpenEMR\Common\Uuid\UuidRegistry;
+use OpenEMR\Modules\CustomModuleGheit\Controller\SqsPublisher;
 
 // Initialize logger
 $logger = new SystemLogger();
@@ -456,6 +459,27 @@ try {
     $logger->error("Error dispatching event", [
         'error' => $e->getMessage()
     ]);
+}
+
+/**
+ * Publish Patient update to SQS
+ */
+$row = sqlQuery("SELECT uuid FROM patient_data WHERE pid = ?", [$pid]);
+$patientUuid = UuidRegistry::uuidToString($row['uuid']);
+
+$fhirResult = (new FhirPatientService())->getOne($patientUuid);
+$fhirData   = $fhirResult->getData()[0] ?? null;
+$patientResource = $fhirData->jsonSerialize();
+
+$eventPayload = [
+    'timestamp' => date('c'),
+    'data'      => $patientResource,
+];
+
+try {
+    (new SqsPublisher())->publish('patient_updated','PUT',$eventPayload,$patientUuid);
+} catch (\Throwable $e) {
+    error_log('SQS publisher failed: ' . $e->getMessage());
 }
 
 include_once("demographics.php");

@@ -62,8 +62,8 @@ use OpenEMR\Events\Appointments\AppointmentRenderEvent;
 use OpenEMR\Events\Appointments\AppointmentDialogCloseEvent;
 use OpenEMR\Common\Logging\SystemLogger;
 use OpenEMR\Common\Uuid\UuidRegistry;
-use OpenEMR\Modules\CustomModuleGheit\Controller\PubSub;
 use OpenEMR\Services\FHIR\FhirAppointmentService;
+use OpenEMR\Modules\CustomModuleGheit\Controller\SqsPublisher;
 
  //Check access control
 if (!AclMain::aclCheckCore('patients', 'appt', '', ['write','wsome'])) {
@@ -736,17 +736,9 @@ if (!empty($_POST['form_action']) && ($_POST['form_action'] == "save")) {
         // end Update Multi providers case
         // =======================================
 
-        //pubsub for appointment update
+        //apointment update
         $uuid = sqlQuery("SELECT uuid FROM openemr_postcalendar_events WHERE pc_eid = ?", [$eid]);
         $appointmentUuid = UuidRegistry::uuidToString($uuid['uuid']);
-
-        // $service = new FhirAppointmentService();
-        // $result = $service->getOne($appointmentUuid);
-        // $appointment = $result->getData()[0];
-        // $fhirArray = $appointment->jsonSerialize();
-
-        // $pubSubController = new PubSub();
-        // $pubSubController->publishPubsub('Appointment', 'appointment_updated', 'appointment_data', $fhirArray);
 
         $service = new FhirAppointmentService();
         $result = $service->getOne($appointmentUuid);
@@ -771,13 +763,19 @@ if (!empty($_POST['form_action']) && ($_POST['form_action'] == "save")) {
             $payload = $appointment;
         }
 
-        $pubSubController = new PubSub();
-        $pubSubController->publishPubsub(
-            'Appointment',
-            'appointment_updated',
-            'appointment_data',
-            $payload
-        );
+        /**
+        * Publish Appointment update to SQS
+        */
+        $eventPayload = [
+            'timestamp' => date('c'),
+            'data'      => $payload,
+        ];
+
+        try {
+            (new SqsPublisher())->publish('appointment_updated', 'PUT', $eventPayload, $appointmentUuid);
+        } catch (\Throwable $e) {
+            error_log('SQS publisher failed: ' . $e->getMessage());
+        }
 
         // EVENTS TO FACILITIES
         $e2f = (int)$eid;
@@ -792,7 +790,7 @@ if (!empty($_POST['form_action']) && ($_POST['form_action'] == "save")) {
 
         $eid = InsertEventFull();
 
-        //pubsub for appointment creation
+        //appointment creation
         $row = sqlQuery(
             "SELECT uuid FROM openemr_postcalendar_events WHERE pc_eid = ?",
             [$eid]
@@ -810,15 +808,6 @@ if (!empty($_POST['form_action']) && ($_POST['form_action'] == "save")) {
         $uuid = sqlQuery("SELECT uuid FROM openemr_postcalendar_events WHERE pc_eid = ?", [$eid]);
         $appointmentUuid = UuidRegistry::uuidToString($uuid['uuid']);
 
-        // $service = new FhirAppointmentService();
-        // $result = $service->getOne($appointmentUuid);
-        // $appointment = $result->getData()[0];
-        // $fhirArray = $appointment->jsonSerialize();
-
-        // $pubSubController = new PubSub();
-        // $pubSubController->publishPubsub('Appointment', 'appointment_created', 'appointment_data', $fhirArray);
-
-
         $service = new FhirAppointmentService();
         $result = $service->getOne($appointmentUuid);
 
@@ -842,13 +831,19 @@ if (!empty($_POST['form_action']) && ($_POST['form_action'] == "save")) {
             $payload = $appointment;
         }
 
-        $pubSubController = new PubSub();
-        $pubSubController->publishPubsub(
-            'Appointment',
-            'appointment_created',
-            'appointment_data',
-            $payload
-        );
+        /**
+        * Publish Appointment create to SQS
+        */
+        $eventPayload = [
+            'timestamp' => date('c'),
+            'data'      => $payload,
+        ];
+
+        try {
+            (new SqsPublisher())->publish('appointment_created', 'POST', $eventPayload, $appointmentUuid);
+        } catch (\Throwable $e) {
+            error_log('SQS publisher failed: ' . $e->getMessage());
+        }
 
         //Tell subscribers that a new single appointment has been set
         $patientAppointmentSetEvent = new AppointmentSetEvent($_POST);

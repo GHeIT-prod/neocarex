@@ -5,8 +5,8 @@ namespace OpenEMR\Modules\CustomModuleGheit\EventSubscriber;
 use OpenEMR\Common\Uuid\UuidRegistry;
 use OpenEMR\Events\User\UserUpdatedEvent;
 use OpenEMR\Services\FHIR\FhirPractitionerService;
-use OpenEMR\Modules\CustomModuleGheit\Controller\PubSub;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
+use OpenEMR\Modules\CustomModuleGheit\Controller\SqsPublisher;
 
 class UserUpdatedSubscriber implements EventSubscriberInterface
 {
@@ -48,14 +48,19 @@ class UserUpdatedSubscriber implements EventSubscriberInterface
 
             $fhir = $practitioner->jsonSerialize();
 
-            $pubSub = new PubSub();
+            /**
+             * Publish Practitioner update to SQS
+             */
+            $eventPayload = [
+                'timestamp' => date('c'),
+                'data'      => $fhir,
+            ];
 
-            $pubSub->publishPubsub(
-                'Practitioner',
-                'practitioner_updated',
-                'practitioner_data',
-                $fhir
-            );
+            try {
+                (new SqsPublisher())->publish('practitioner_updated', 'PUT', $eventPayload, $uuid);
+            } catch (\Throwable $e) {
+                error_log('SQS publisher failed: ' . $e->getMessage());
+            }
 
         } catch (\Throwable $e) {
             error_log("Subscriber error: " . $e->getMessage());
